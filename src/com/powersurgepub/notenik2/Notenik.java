@@ -17,8 +17,16 @@
 package com.powersurgepub.notenik2;
 
   import com.powersurgepub.psutils2.env.*;
+  import com.powersurgepub.psutils2.files.*;
   import com.powersurgepub.psutils2.logging.*;
+  import com.powersurgepub.psutils2.notenik.*;
+  import com.powersurgepub.psutils2.prefs.*;
+  import com.powersurgepub.psutils2.publish.*;
+  import com.powersurgepub.psutils2.script.*;
+  import com.powersurgepub.psutils2.textmerge.*;
   import com.powersurgepub.psutils2.ui.*;
+
+  import java.io.*;
 
   import javafx.application.*;
   import javafx.event.*;
@@ -29,15 +37,33 @@ package com.powersurgepub.notenik2;
 
 /**
  Son of Notenik -- a program for creating, maintaining and accessing collections
- of notes. Notenik2 uses JavaFX instead of Swing for the UI elements. 
+ of notes. Notenik uses JavaFX instead of Swing for the UI elements. 
 
  @author Herb Bowie
  */
-public class Notenik2 
-    extends Application {
+public class Notenik 
+    extends Application
+    implements
+      ScriptExecutor {
   
-  public static final String PROGRAM_NAME    = "Notenik2";
+  public static final String PROGRAM_NAME    = "Notenik";
   public static final String PROGRAM_VERSION = "4.00";
+  
+  public static final int    CHILD_WINDOW_X_OFFSET = 60;
+  public static final int    CHILD_WINDOW_Y_OFFSET = 60;
+
+  public static final        int    ONE_SECOND    = 1000;
+  public static final        int    ONE_MINUTE    = ONE_SECOND * 60;
+  public static final        int    ONE_HOUR      = ONE_MINUTE * 60;
+
+  public static final String INVALID_URL_TAG = "Invalid URL";
+  
+  public static final String URLUNION_FILE_NAME           = "urlunion.html";
+  public static final String INDEX_FILE_NAME              = "index.html";
+  public static final String FAVORITES_FILE_NAME          = "favorites.html";
+  public static final String NETSCAPE_BOOKMARKS_FILE_NAME = "bookmark.html";
+  public static final String OUTLINE_FILE_NAME            = "outline.html";
+  public static final String SUPPORT_FOLDER_NAME          = "urlunion";
   
   private             String  country = "  ";
   private             String  language = "  ";
@@ -49,6 +75,16 @@ public class Notenik2
   // Variables used for logging
   private             Logger              logger;
   private             LogWindow           logWindow;
+  
+  /** File of Notes that is currently open. */
+  private             NoteIO              noteIO = null;
+  private             FileSpec            currentFileSpec = null;
+  private             File                noteFile = null;
+  private             File                currentDirectory;
+  private             NoteExport          exporter;
+  
+  /** This is the current collection of Notes. */
+  private             NoteList            noteList = null;
   
   private             Stage               primaryStage;
   private             VBox                primaryLayout;
@@ -92,16 +128,44 @@ public class Notenik2
   
   private             WindowMenuManager   windowMenuManager;
   
+  private             PrefsJuggler        prefsJuggler;
+  
+  private             NoteSortParm        noteSortParm = new NoteSortParm();
+  
+  private             AboutWindow         aboutWindow;
+  
+  private             UserPrefs           userPrefs;
+  
+  private             GeneralPrefs        generalPrefs;
+  private             DisplayPrefs        displayPrefs;
+  private             WebPrefs            webPrefs;
+  private             FavoritesPrefs      favoritesPrefs;
+  private             FilePrefs           filePrefs;
+  
+  // private             CollectionPrefs     collectionPrefs;
+  // private             MasterCollection    masterCollection;
+
+  
+  private             Reports             reports;
+  private             boolean             editingMasterCollection = false;
+  
+  // Written flags
+  private             boolean             urlUnionWritten = false;
+  private             boolean             favoritesWritten = false;
+  private             boolean             netscapeWritten = false;
+  private             boolean             outlineWritten = false;
+  private             boolean             indexWritten = false;
   
   @Override
   public void start(Stage primaryStage) {
     
     this.primaryStage = primaryStage;
-    primaryStage.setTitle("Notenik 2");
+    primaryStage.setTitle("Notenik");
     primaryLayout = new VBox();
     
-    // Build most of the UI elements
+    // Build most of the UI elements and init the Window Menu Manager
     buildMenuBar();
+    
     windowMenuManager = WindowMenuManager.getShared(windowMenu);
     
     buildToolBar();
@@ -116,7 +180,7 @@ public class Notenik2
     // Let's set up Logging
     logger = Logger.getShared();
     logWindow = new LogWindow (primaryStage);
-    logger.setLog (logWindow);
+    logger.setLogOutput (logWindow);
     logger.setLogAllData (false);
     logger.setLogThreshold (LogEvent.NORMAL);
     windowMenuManager.add(logWindow);
@@ -135,8 +199,14 @@ public class Notenik2
           primaryStage);
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
+    aboutWindow = new AboutWindow (primaryStage, false);
     
-    home.setHelpMenu(primaryStage, helpMenu);
+    home.setHelpMenu(primaryStage, helpMenu, aboutWindow);
+    
+    noteSortParm.populateMenu(sortMenu);
+    
+    reports = new Reports(reportsMenu);
+    reports.setScriptExecutor(this);
     
     // Now let's bring the curtains up
     primaryStage.setScene(primaryScene);
@@ -231,6 +301,139 @@ public class Notenik2
    */
   public static void main(String[] args) {
     launch(args);
+  }  
+  
+  /**
+   Method for callback while executing a PSTextMerge script. 
+  
+   @param operand 
+  */
+  public void scriptCallback (String operand) {
+    pubOperation(reports.getReportsFolder(), operand);
+  }
+  
+  /**
+   Any pre-processing to do before PublishWindow starts its publication
+   process. In particular, make the source data available to the publication
+   script.
+
+   @param publishTo The folder to which we are publishing.
+   */
+  public void prePub(File publishTo) {
+    // File urlsTab = new File (publishTo, "urls.tab");
+    // io.exportToTabDelimited(noteList, urlsTab, false, "");
+    
+    // File favoritesTab = new File (publishTo, "favorites.tab");
+    // io.exportToTabDelimited(noteList, favoritesTab, true,
+    //    generalPrefs.getFavoritesPrefs().getFavoritesTags());
+
+    urlUnionWritten = false;
+    favoritesWritten = false;
+    netscapeWritten = false;
+    outlineWritten = false;
+    indexWritten = false;
+  }
+
+  /**
+   Perform the requested publishing operation.
+   
+   @param operand
+   */
+  public boolean pubOperation(File publishTo, String operand) {
+    boolean operationOK = false;
+    if (operand.equalsIgnoreCase("urlunion")) {
+      operationOK = publishURLUnion(publishTo);
+    }
+    else
+    if (operand.equalsIgnoreCase("favorites")) {
+      operationOK = publishFavorites(publishTo);
+    }
+    else
+    if (operand.equalsIgnoreCase("netscape")) {
+      operationOK = publishNetscape(publishTo);
+    }
+    else
+    if (operand.equalsIgnoreCase("outline")) {
+      operationOK = publishOutline(publishTo);
+    }
+    else
+    if (operand.equalsIgnoreCase("index")) {
+      operationOK = publishIndex(publishTo);
+    }
+    return operationOK;
+  }
+
+  /**
+   Any post-processing to be done after PublishWindow has completed its
+   publication process.
+
+   @param publishTo The folder to which we are publishing.
+   */
+  public void postPub(File publishTo) {
+
+  }
+
+  private boolean publishURLUnion (File publishTo) {
+    urlUnionWritten = false;
+    File urlUnionFile = new File (publishTo, URLUNION_FILE_NAME);
+    if (! urlUnionFile.toString().equals(noteFile.toString())) {
+      exporter.exportToURLUnion (urlUnionFile, noteList);
+      urlUnionWritten = true;
+    }
+    return urlUnionWritten;
+  }
+
+  private boolean publishFavorites (File publishTo) {
+    
+    // Publish selected favorites
+    Logger.getShared().recordEvent(LogEvent.NORMAL, "Publishing Favorites", false);
+    favoritesWritten = false;
+    if (! noteFile.getName().equalsIgnoreCase (FAVORITES_FILE_NAME)) {
+      favoritesWritten = exporter.publishFavorites
+          (publishTo, noteList, favoritesPrefs);
+    }
+    return favoritesWritten;
+  }
+
+  private boolean publishNetscape (File publishTo) {
+    // Publish in Netscape bookmarks format
+    netscapeWritten = false;
+    if (! noteFile.getName().equalsIgnoreCase (NETSCAPE_BOOKMARKS_FILE_NAME)) {
+      File netscapeFile = new File (publishTo,
+        NETSCAPE_BOOKMARKS_FILE_NAME);
+      exporter.publishNetscape (netscapeFile, noteList);
+      netscapeWritten = true;
+    }
+    return netscapeWritten;
+  }
+
+  private boolean publishOutline (File publishTo) {
+    // Publish in outline form using dynamic html
+    outlineWritten = false;
+    if (! noteFile.getName().equalsIgnoreCase (OUTLINE_FILE_NAME)) {
+      File dynamicHTMLFile = new File (publishTo, OUTLINE_FILE_NAME);
+      exporter.publishOutline(dynamicHTMLFile, noteList);
+      outlineWritten = true;
+    }
+    return outlineWritten;
+  }
+
+  private boolean publishIndex (File publishTo) {
+    // Publish index file pointing to other files
+    indexWritten = false;
+    if (! noteFile.getName().equalsIgnoreCase (INDEX_FILE_NAME)) {
+      File indexFile = new File (publishTo, INDEX_FILE_NAME);
+      exporter.publishIndex(indexFile, noteFile,
+         favoritesWritten, FAVORITES_FILE_NAME,
+         netscapeWritten, NETSCAPE_BOOKMARKS_FILE_NAME,
+         outlineWritten, OUTLINE_FILE_NAME);
+      indexWritten = true;
+    }
+    return indexWritten;
+  }
+  
+  public WebPrefs getWebPrefs() {
+    return webPrefs;
   }
   
 }
