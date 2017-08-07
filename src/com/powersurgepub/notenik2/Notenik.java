@@ -18,20 +18,29 @@ package com.powersurgepub.notenik2;
 
   import com.powersurgepub.psutils2.env.*;
   import com.powersurgepub.psutils2.files.*;
+  import com.powersurgepub.psutils2.links.*;
   import com.powersurgepub.psutils2.logging.*;
   import com.powersurgepub.psutils2.notenik.*;
   import com.powersurgepub.psutils2.prefs.*;
+  import com.powersurgepub.psutils2.records.*;
   import com.powersurgepub.psutils2.publish.*;
   import com.powersurgepub.psutils2.script.*;
+  import com.powersurgepub.psutils2.strings.*;
+  import com.powersurgepub.psutils2.tags.*;
   import com.powersurgepub.psutils2.textmerge.*;
   import com.powersurgepub.psutils2.ui.*;
+  import com.powersurgepub.psutils2.values.*;
+  import com.powersurgepub.psutils2.widgets.*;
 
   import java.io.*;
+  import java.util.*;
 
   import javafx.application.*;
   import javafx.event.*;
   import javafx.scene.*;
   import javafx.scene.control.*;
+  import javafx.scene.control.Alert.*;
+  import javafx.scene.control.ButtonBar.*;
   import javafx.scene.layout.*;
   import javafx.stage.*;
 
@@ -44,6 +53,8 @@ package com.powersurgepub.notenik2;
 public class Notenik 
     extends Application
     implements
+      AppToBackup,
+      DisplayWindow,
       ScriptExecutor {
   
   public static final String PROGRAM_NAME    = "Notenik";
@@ -82,6 +93,9 @@ public class Notenik
   private             File                noteFile = null;
   private             File                currentDirectory;
   private             NoteExport          exporter;
+  private             String              oldTitle = "";
+  private             String              oldSeq = "";
+  private             String              fileName = "";
   
   /** This is the current collection of Notes. */
   private             NoteList            noteList = null;
@@ -124,30 +138,42 @@ public class Notenik
   private             Tab                 displayTab;
   private             Tab                 editTab;
   
+  private             DisplayPane         displayPane;
+  private             EditPane            editPane;
+  
   private             StatusBar           statusBar;
   
   private             WindowMenuManager   windowMenuManager;
-  
-  private             PrefsJuggler        prefsJuggler;
   
   private             NoteSortParm        noteSortParm = new NoteSortParm();
   
   private             AboutWindow         aboutWindow;
   
+  private             LinkTweaker         linkTweaker;
+  
   private             UserPrefs           userPrefs;
   
+  private             PrefsJuggler        appPrefs;
   private             GeneralPrefs        generalPrefs;
   private             DisplayPrefs        displayPrefs;
   private             WebPrefs            webPrefs;
   private             FavoritesPrefs      favoritesPrefs;
+  private             TagsPrefs           tagsPrefs;
   private             FilePrefs           filePrefs;
+  private             TweakerPrefs        tweakerPrefs;
   
-  // private             CollectionPrefs     collectionPrefs;
-  // private             MasterCollection    masterCollection;
-
+  private             PrefsJuggler        collectionPrefs;
+  private             FolderSyncPrefs     folderSyncPrefs;
+  private             HTMLPrefs           htmlPrefs;
+  
+  private             MasterCollection    masterCollection;
   
   private             Reports             reports;
   private             boolean             editingMasterCollection = false;
+  
+  private             NotePositioned      position = null;
+  private             boolean             modified = false;
+  private             boolean             unsavedChanges = false;
   
   // Written flags
   private             boolean             urlUnionWritten = false;
@@ -208,9 +234,60 @@ public class Notenik
     reports = new Reports(reportsMenu);
     reports.setScriptExecutor(this);
     
+    // Initialize user preferences
+    userPrefs = UserPrefs.getShared();
+    
+    // Build window for App Preferences
+    appPrefs = new PrefsJuggler(primaryStage);
+    
+    appPrefs.addGeneralPrefs();
+    generalPrefs = appPrefs.getGeneralPrefs();
+    
+    displayPrefs = new DisplayPrefs(this);
+    appPrefs.addSet(displayPrefs);
+    
+    webPrefs = new WebPrefs(this);
+    reports.setWebPrefs(webPrefs);
+    appPrefs.addSet(webPrefs);
+    
+    favoritesPrefs = new FavoritesPrefs();
+    appPrefs.addSet(favoritesPrefs);
+    
+    tagsPrefs = new TagsPrefs();
+    appPrefs.addSet(tagsPrefs);
+    
+    filePrefs = new FilePrefs(this);
+    filePrefs.loadFromPrefs();
+    appPrefs.addSet(filePrefs);
+    
+    tweakerPrefs = new TweakerPrefs();
+    appPrefs.addSet(tweakerPrefs);
+    
+    appPrefs.setScene();
+    appPrefs.addToMenu(optionsMenu, true);
+    WindowMenuManager.getShared().add(appPrefs);
+    
+    // Set up separate window for Collection Preferences
+    collectionPrefs = new PrefsJuggler(primaryStage);
+    
+    folderSyncPrefs = new FolderSyncPrefs(this, primaryStage);
+    collectionPrefs.addSet(folderSyncPrefs);
+    
+    htmlPrefs = new HTMLPrefs(this, primaryStage);
+    collectionPrefs.addSet(htmlPrefs);
+    
+    collectionPrefs.setScene();
+    
     // Now let's bring the curtains up
     primaryStage.setScene(primaryScene);
     primaryStage.show();
+    
+    WindowMenuManager.getShared().hide(logWindow);
+  }
+  
+  @Override
+  public void stop() {
+    appPrefs.save();
   }
   
   private void buildMenuBar() {
@@ -302,6 +379,73 @@ public class Notenik
   public static void main(String[] args) {
     launch(args);
   }  
+  
+  public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
+    if (position != null && displayTab != null) {
+      buildDisplayTab();
+    }
+  }
+  
+  /**
+   Provide a static, non-editable display of the note on the display tab. 
+  */
+  private void buildDisplayTab() {
+    Note note = position.getNote();
+    
+    displayPane.startDisplay();
+    if (note.hasTags()) {
+      displayPane.displayTags(note.getTags());
+    }
+    
+    displayPane.displayTitle(note.getTitle());
+    
+    if (note.hasLink()) {
+      displayPane.displayLink(
+          NoteParms.LINK_FIELD_NAME, 
+          "", 
+          note.getLinkAsString());
+    }
+    
+    if (editPane.getNumberOfFields() == noteIO.getNumberOfFields()) {
+      for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
+        String fieldName = fieldDef.getProperName();
+        DataWidget widget = editPane.get(i);
+        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+          // Ignore -- handled below
+        } 
+        else {
+          DataField nextField = note.getField(i);
+          displayPane.displayField(fieldName, nextField.getData());
+        }
+
+      } // end for each data field
+    
+      if (note.hasBody()) {
+        displayPane.displayLabelOnly("Body");
+        displayPane.displayBody(note.getBody());
+      }
+
+      displayPane.displayDivider();
+    
+    }
+    
+    displayPane.displayDateAdded(note.getLastModDateStandard());
+    
+    displayPane.finishDisplay();
+  }
   
   /**
    Method for callback while executing a PSTextMerge script. 
@@ -434,6 +578,527 @@ public class Notenik
   
   public WebPrefs getWebPrefs() {
     return webPrefs;
+  }
+  
+  /**
+   Sync the list with a Notational Velocity style folder. 
+  
+   @return True if everything went OK. 
+  */
+  public boolean syncWithFolder () {
+    
+    boolean ok = true;
+    StringBuilder msgs = new StringBuilder();
+    
+    String syncFolderString = folderSyncPrefs.getSyncFolder();
+    String syncPrefix = folderSyncPrefs.getSyncPrefix();
+    boolean sync = folderSyncPrefs.getSync();
+    File syncFolder = null;
+    
+    // Check to see if we have the info we need to do a sync
+    if (syncFolderString == null
+        || syncFolderString.length() == 0
+        || syncPrefix == null
+        || syncPrefix.length() == 0
+        || (! sync)) {
+      ok = false;
+    }
+    
+    if (ok) {
+      syncFolder = new File (syncFolderString);
+      if (goodCollection(syncFolder)) {
+      } else {
+        Trouble.getShared().report(
+            primaryStage, 
+            "Trouble reading from folder: " + syncFolder.toString(), 
+            "Problem with Sync Folder");
+        ok = false;
+      }
+    }
+    
+    int synced = 0;
+    int added = 0;
+    int addedToSyncFolder = 0;
+    
+    if (ok) {  
+      
+      // Now go through the items on the list and mark them all as unsynced
+      Note workNote;
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote = noteList.get (workIndex);
+        workNote.setSynced(false);
+      }
+
+      // Now match directory entries in the folder with items on the list
+      DirectoryReader directoryReader = new DirectoryReader (syncFolder);
+      directoryReader.setLog (Logger.getShared());
+      try {
+        directoryReader.openForInput();
+        while (! directoryReader.isAtEnd()) {
+          File nextFile = directoryReader.nextFileIn();
+          FileName nextFileName = new FileName(nextFile);
+          if ((nextFile != null) 
+              && (! nextFile.getName().startsWith ("."))
+              && nextFile.exists()
+              && NoteIO.isInterestedIn(nextFile)
+              && nextFile.getName().startsWith(syncPrefix)
+              && nextFileName.getBase().length() > syncPrefix.length()) {
+            String fileNameBase = nextFileName.getBase();
+            String nextTitle 
+                = fileNameBase.substring(syncPrefix.length()).trim();
+            int i = 0;
+            boolean found = false;
+            while (i < noteList.size() && (! found)) {
+              workNote = noteList.get(i);
+              found = (workNote.getTitle().equals(nextTitle));
+              if (found) {
+                workNote.setSynced(true);
+                Date lastModDate = new Date (nextFile.lastModified());
+                if (lastModDate.compareTo(workNote.getLastModDate()) > 0) {
+                  Note syncNote = noteIO.getNote(nextFile, syncPrefix);
+                  msgs.append(
+                      "Note updated to match more recent info from sync folder for "
+                      + syncNote.getTitle()
+                      + "\n");
+                  workNote.setTags(syncNote.getTagsAsString());
+                  workNote.setLink(syncNote.getLinkAsString());
+                  workNote.setBody(syncNote.getBody());
+                  noteIO.save(syncNote, true);
+                }
+                synced++;
+              } else {
+                i++;
+              }
+            } // end while looking for a matching newNote
+            if ((! found)) {
+              // Add new nvAlt newNote to Notenik collection
+              Note syncNote = noteIO.getNote(nextFile, syncPrefix);
+              syncNote.setLastModDateToday();
+              try {
+                noteIO.save(syncNote, true);
+                position = noteList.add (syncNote);
+              } catch (IOException e) {
+                ioException(e);
+              }
+            }
+          } // end if file exists, can be read, etc.
+        } // end while more files in sync folder
+        directoryReader.close();
+      } catch (IOException ioe) {
+        Trouble.getShared().report(primaryStage, 
+            "Trouble reading sync folder: " + syncFolder.toString(), 
+            "Sync Folder access problems");
+        ok = false;
+      } // end if caught I/O Error
+    }
+      
+    if (ok) {
+      msgs.append(String.valueOf(added) + " "
+          + StringUtils.pluralize("item", added)
+          + " added\n");
+      
+      msgs.append(String.valueOf(synced)  + " existing "
+          + StringUtils.pluralize("item", synced)
+          + " synced\n");
+      
+      // Now add any unsynced notes to the sync folder
+      Note workNote;
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote = noteList.get(workIndex);
+        if (! workNote.isSynced()) {
+          workNote.setLastModDateToday();
+          saveNote(workNote);
+          msgs.append("Added to Sync Folder " + workNote.getTitle() + "\n");
+          addedToSyncFolder++;
+        }
+      } // end of list of notes
+      msgs.append(String.valueOf(addedToSyncFolder) + " "
+          + StringUtils.pluralize("note", addedToSyncFolder)
+          + " added to sync folder\n");
+      msgs.append("Folder Sync Completed!\n");
+    }
+    
+    if (ok) {
+      logger.recordEvent (LogEvent.NORMAL,
+        msgs.toString(),
+        false);
+    }
+    return ok;
+      
+  }
+  
+  /**
+   Check to see if the passed file seems to point to a valid 
+   Collection folder. 
+  
+   @param fileToCheck The file to be checked. 
+  
+   @return false if file is null, doesn't exist, or isn't a directory,
+           or can't be read, or can't be written.         
+  */
+  public boolean goodCollection(File fileToCheck) {
+    return (fileToCheck != null
+      && fileToCheck.exists()
+      && fileToCheck.isDirectory()
+      && fileToCheck.canRead()
+      && fileToCheck.canWrite());
+  }
+  
+  /**
+   Saves a newNote in its primary location and in its sync folder, if specified. 
+  
+   @param note The newNote to be saved. 
+  */
+  protected boolean saveNote(Note note) {
+    try {
+      noteIO.save(note, true);
+      if (folderSyncPrefs.getSync()) {
+        noteIO.saveToSyncFolder(
+            folderSyncPrefs.getSyncFolder(), 
+            folderSyncPrefs.getSyncPrefix(), 
+            note);
+        note.setSynced(true);
+      }
+      return true;
+    } catch (IOException e) {
+      ioException(e);
+      return false;
+    }
+  }
+  
+  /**
+   Backup without prompting the user. 
+  
+   @return True if backup was successful. 
+  */
+  public boolean backupWithoutPrompt() {
+
+    boolean backedUp = false;
+    
+    if (noteFile != null && noteFile.exists()) {
+      FileName urlFileName = new FileName (noteFile);
+      File backupFolder = getBackupFolder();
+      String backupFileName 
+          = filePrefs.getBackupFileName(noteFile, urlFileName.getExt());
+      File backupFile = new File 
+          (backupFolder, backupFileName);
+      backedUp = backup (backupFile);
+    }
+
+    return backedUp;
+    
+  }
+  
+  /**
+   Prompt the user for a backup location. 
+
+   @return True if backup was successful.
+  */
+  public boolean promptForBackup() {
+    boolean modOK = modIfChanged();
+    boolean backedUp = false;
+    DirectoryChooser chooser = new DirectoryChooser();
+
+		if (modOK) {
+      chooser.setTitle ("Make Backup of Notenik Folder");
+      FileName noteFileName = new FileName (home.getUserHome());
+      if (noteFile != null && noteFile.exists()) {
+        noteFileName = new FileName (noteFile);
+      }
+      File backupFolder = getBackupFolder();
+      chooser.setInitialDirectory (backupFolder);
+      File selectedFile = chooser.showDialog (primaryStage);
+      if (selectedFile != null) {
+        File backupFile = selectedFile;
+        backedUp = backup (backupFile);
+        FileSpec fileSpec = masterCollection.getFileSpec(0);
+        fileSpec.setBackupFolder(backupFile);
+        if (backedUp) {
+          Alert alert = new Alert(AlertType.INFORMATION);
+          alert.setTitle("Backup Results");
+          alert.setContentText("Backup completed successfully");
+          alert.showAndWait();
+        } // end if backed up successfully
+      } // end if the user selected a backup location
+    } // end if modIfChanged had no problems
+
+    return backedUp;
+
+  }
+  
+  /**
+   Backup the data store to the indicated location. 
+  
+   @param backupFile The backup file to be used. 
+  
+   @return 
+  */
+  public boolean backup(File folderForBackups) {
+    
+    StringBuilder backupPath = new StringBuilder();
+    StringBuilder fileNameWithoutDate = new StringBuilder();
+    try {
+      backupPath.append(folderForBackups.getCanonicalPath());
+    } catch (IOException e) {
+      backupPath.append(folderForBackups.getAbsolutePath());
+    }
+    backupPath.append(File.separator);
+    String noteFileName = noteFile.getName();
+    if (noteFileName.equalsIgnoreCase("notes")) {
+      backupPath.append(noteFile.getParentFile().getName());
+      backupPath.append(" ");
+      fileNameWithoutDate.append(noteFile.getParentFile().getName());
+      fileNameWithoutDate.append(" ");
+    }
+    backupPath.append(noteFile.getName());
+    fileNameWithoutDate.append(noteFile.getName());
+    backupPath.append(" ");
+    fileNameWithoutDate.append(" ");
+    backupPath.append("backup ");
+    fileNameWithoutDate.append("backup ");
+    backupPath.append(filePrefs.getBackupDate());
+    File backupFolder = new File (backupPath.toString());
+    backupFolder.mkdir();
+    boolean backedUp = FileUtils.copyFolder (noteFile, backupFolder);
+    if (backedUp) {
+      FileSpec fileSpec = masterCollection.getFileSpec(0);
+      filePrefs.saveLastBackupDate
+          (fileSpec, masterCollection.getPrefsQualifier(), 0);
+      logger.recordEvent (LogEvent.NORMAL,
+          "Notes backed up to " + backupFolder.toString(),
+            false);
+      filePrefs.pruneBackups(folderForBackups, fileNameWithoutDate.toString());
+    } else {
+      logger.recordEvent (LogEvent.MEDIUM,
+          "Problem backing up Notes to " + backupFolder.toString(),
+            false);
+    }
+    return backedUp;
+  }
+  
+  /**
+   Return the presumptive folder to be used for backups. 
+  
+   @return The folder we think the user wishes to use for backups,
+           based on his past choices, or on the application defaults.
+  */
+  private File getBackupFolder() {
+    File backupFolder = home.getUserHome();
+    if (noteFile != null && noteFile.exists()) {    
+      FileSpec fileSpec = masterCollection.getFileSpec(0);
+      String backupFolderStr = fileSpec.getBackupFolder();
+      File defaultBackupFolder = new File (fileSpec.getFolder(), "backups");
+      if (backupFolderStr == null
+          || backupFolderStr.length() < 2) {
+        backupFolder = defaultBackupFolder;
+      } else {
+        backupFolder = new File (backupFolderStr);
+        if (backupFolder.exists()
+            && backupFolder.canWrite()) {
+          // leave as-is
+        } else {
+          backupFolder = defaultBackupFolder;
+        }
+      }
+    }
+    return backupFolder;
+  }
+  
+ /**
+   Check to see if the user has changed anything and take appropriate
+   actions if so.
+   */
+  public boolean modIfChanged () {
+    
+    boolean modOK = true;
+    
+    Note note = position.getNote();
+    
+    // Check each field for changes
+    for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
+      String fieldName = fieldDef.getProperName();
+      if (i < editPane.getNumberOfFields()) {
+        DataWidget widget = editPane.get(i);
+        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+          if (! note.equalsTitle (widget.getText())) {
+            oldTitle = note.getTitle();
+            note.setTitle (widget.getText());
+            modified = true;
+          }
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+          if ((widget.getText().equals (note.getLinkAsString()))
+              || ((widget.getText().length() == 0) && note.blankLink())) {
+            // No change
+          } else {
+            note.setLink (widget.getText());
+            modified = true;
+          }
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+          if (! note.equalsTags (widget.getText())) {
+            note.setTags (widget.getText());
+            modified = true;
+          }
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+          if (! widget.getText().equals (note.getBody())) {
+            note.setBody (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
+          if (! widget.getText().equals (note.getSeq())) {
+            note.setSeq (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
+          ItemStatus statusValue = new ItemStatus(widget.getText());
+          if (note.getStatus().compareTo(statusValue) != 0) {
+            note.setStatus (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.RECURS_FIELD_NAME)) {
+          RecursValue recursValue = new RecursValue(widget.getText());
+          if (note.getRecurs().compareTo(recursValue) != 0) {
+            note.setRecurs (widget.getText());
+            modified = true;
+          }
+        }  
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)) {
+          String newDate = widget.getText();
+          if (note.getDateAsString().compareTo(newDate) != 0) {
+            note.setDate(newDate);
+            modified = true;
+          }
+        }
+        else {
+          DataField nextField = note.getField(i);
+          if (! widget.getText().equals(nextField.getData())) {
+            note.storeField(fieldName, widget.getText());
+            modified = true;
+          } // end if generic field has been changed
+        } // end if generic field
+      } // end if we have a widget
+    } // end for each field
+    
+    // If entry has been modified, then let's update if we can
+    if (modified) {
+      
+      // Got to have a title
+      String newFileName = note.getFileName();
+      if ((! note.hasTitle()) || note.getTitle().length() == 0) {
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Data Entry Error");
+        alert.setContentText
+          ("The Note cannot be saved because the Title field has been left blank");
+        ButtonType okType = new ButtonType("OK, let me fix it");
+        ButtonType cancelType = new ButtonType(
+            "Cancel and discard the Note", ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(okType, cancelType);
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.get() == okType){
+          modOK = true;
+        } else {
+          modOK = false;
+        }
+      } 
+      else 
+      // If we changed the title, then check to see if we have another 
+      // Note by the same name
+      if ((! newFileName.equals(fileName))
+          && noteIO.exists(newFileName)
+          && (! newFileName.equalsIgnoreCase(note.getDiskLocationBase()))) {
+        Trouble.getShared().report (primaryStage, 
+            "A Note already exists with the same Title",
+            "Duplicate Found");
+        modOK = false;
+      } else {
+        // Modify newNote on disk
+        note.setLastModDateToday();
+        saveNoteAndDeleteOnRename(note);
+        if (position.isNewNote()) {
+          if (note.hasUniqueKey()) {
+            addNoteToList ();
+          } // end if we have newNote worth adding
+        } else {
+          noteList.modify(position);
+        }
+        // noteList.fireTableDataChanged();
+        
+        if (editingMasterCollection) {
+          masterCollection.modRecentFile(oldTitle, note.getTitle());
+        }
+      }
+      oldSeq = "";
+    } // end if modified
+    
+    return modOK;
+  } // end modIfChanged method
+  
+  /**
+   Save the note, and if it now has a new disk location, 
+   delete the file at the old disk location. 
+  
+   @param note The note to be saved. 
+  */
+  private void saveNoteAndDeleteOnRename(Note note) {
+    String oldDiskLocation = note.getDiskLocation();
+    saveNote(note);
+    String newDiskLocation = note.getDiskLocation();
+    if (! newDiskLocation.equals(oldDiskLocation)) {
+      File oldDiskFile = new File (oldDiskLocation);
+      oldDiskFile.delete();
+      if (folderSyncPrefs.getSync()) {
+        File oldSyncFile = noteIO.getSyncFile(
+            folderSyncPrefs.getSyncFolder(), 
+            folderSyncPrefs.getSyncPrefix(), 
+            oldTitle);
+        oldSyncFile.delete();
+      }
+    }
+  }
+  
+  private void addNoteToList () {
+    position = noteList.add (position.getNote());
+    if (position.hasValidIndex (noteList)) {
+      positionAndDisplay();
+    }
+  }
+  
+  private void positionAndDisplay () {
+    /*
+    if (position.getIndex() >= 0
+        && position.getIndex() < noteList.size()
+        && position.getIndex() != noteTable.getSelectedRow()) {
+      noteTable.setRowSelectionInterval
+          (position.getIndex(), position.getIndex());
+      noteTable.scrollRectToVisible
+          ((noteTable.getCellRect(position.getIndex(), 0, false)));
+    } 
+    if (position.getTagsNode() != null
+        && position.getTagsNode()
+        != noteTree.getLastSelectedPathComponent()) {
+      TreePath path = new TreePath(position.getTagsNode().getPath());
+      noteTree.setSelectionPath (path);
+      noteTree.scrollPathToVisible (path);
+    }
+    displayNote ();
+*/
+  }
+  
+  private void ioException(IOException e) {
+    Trouble.getShared().report("I/O Exception", "Trouble");
   }
   
 }

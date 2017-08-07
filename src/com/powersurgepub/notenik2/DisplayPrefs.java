@@ -42,7 +42,7 @@ public class DisplayPrefs
   
   public static final String DISPLAY_BACKGROUND_COLOR_KEY  = "displaybackcolor";
   public static final String DISPLAY_TEXT_COLOR_KEY        = "displaytextcolor";
-  public static final String DISPLAY_NORMAL_FONT_SIZE_KEY  = "displayfontsize";
+  public static final String DISPLAY_FX_NORMAL_FONT_SIZE_KEY  = "displayfxfontsize";
   public static final String DISPLAY_FONT_NAME_KEY         = "displayfontname";
   public static final String DISPLAY_METHOD_KEY            = "displaymethod";
   public static final String DISPLAY_SECONDS_KEY           = "displayseconds";
@@ -62,7 +62,9 @@ public class DisplayPrefs
   private   List<String>    fontList;
   
   private   Color           displayBackgroundColor   = Color.rgb (255, 255, 255);
+  private   String          displayBackgroundColorStr = "FFFFFF";
   private   Color           displayTextColor         = Color.rgb (0, 0, 0);
+  private   String          displayTextColorStr      = "000000";
   private   String          displayFont              = "Verdana";
   private   int             displayNormalFontSize    = 3;
   private   int             displayBigFontSize       = 4;
@@ -96,7 +98,7 @@ public class DisplayPrefs
         (UserPrefs.getShared().getPref (DISPLAY_BACKGROUND_COLOR_KEY, "FFFFFF"));
     
     displayNormalFontSize 
-        = UserPrefs.getShared().getPrefAsInt (DISPLAY_NORMAL_FONT_SIZE_KEY,  12);
+        = UserPrefs.getShared().getPrefAsInt (DISPLAY_FX_NORMAL_FONT_SIZE_KEY,  12);
     
     displayFontSizeSlider.setValue(displayNormalFontSize);
 
@@ -179,19 +181,26 @@ public class DisplayPrefs
 		GridPane.setHgrow(displayBackgroundColorLabel, Priority.SOMETIMES);
 
 		displayBackgroundColorPicker = new ColorPicker();
+    displayBackgroundColorPicker.setValue(displayBackgroundColor);
     displayBackgroundColorPicker.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
         displayBackgroundColor = displayBackgroundColorPicker.getValue();
+        displayBackgroundColorStr 
+            = StringUtils.colorToHexString(displayBackgroundColor);
         UserPrefs.getShared().setPref(DISPLAY_BACKGROUND_COLOR_KEY,
-          StringUtils.colorToHexString(displayBackgroundColor));
+          displayBackgroundColorStr);
         displaySampleText();
         displayWindow.displayPrefsUpdated(displayPrefs);
 		  } // end handle method
 		}); // end event handler
 		displayPrefsPane.add(displayBackgroundColorPicker, 1, rowCount, 1, 1);
 		displayBackgroundColorPicker.setMaxWidth(Double.MAX_VALUE);
+    displayBackgroundColorPicker.setMinHeight(40);
+    displayBackgroundColorPicker.setPrefHeight(60);
+    displayBackgroundColorPicker.setMaxHeight(Double.MAX_VALUE);
 		GridPane.setHgrow(displayBackgroundColorPicker, Priority.ALWAYS);
+    GridPane.setVgrow(displayBackgroundColorPicker, Priority.SOMETIMES);
 
 		rowCount++;
 
@@ -201,19 +210,25 @@ public class DisplayPrefs
 		GridPane.setHgrow(displayTextColorLabel, Priority.SOMETIMES);
 
 		displayTextColorPicker = new ColorPicker();
+    displayTextColorPicker.setValue(displayTextColor);
     displayTextColorPicker.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
         displayTextColor = displayTextColorPicker.getValue();
+        displayTextColorStr = StringUtils.colorToHexString(displayTextColor);
         UserPrefs.getShared().setPref(DISPLAY_TEXT_COLOR_KEY,
-          StringUtils.colorToHexString(displayTextColor));
+          displayTextColorStr);
         displaySampleText();
         displayWindow.displayPrefsUpdated(displayPrefs);
 		  } // end handle method
 		}); // end event handler
 		displayPrefsPane.add(displayTextColorPicker, 1, rowCount, 1, 1);
 		displayTextColorPicker.setMaxWidth(Double.MAX_VALUE);
+    displayTextColorPicker.setMinHeight(40);
+    displayTextColorPicker.setPrefHeight(60);
+    displayTextColorPicker.setMaxHeight(Double.MAX_VALUE);
 		GridPane.setHgrow(displayTextColorPicker, Priority.ALWAYS);
+    GridPane.setVgrow(displayTextColorPicker, Priority.SOMETIMES);
 
 		rowCount++;
 
@@ -228,6 +243,7 @@ public class DisplayPrefs
 		displayTextSample.setWrapText(true);
 
 		rowCount++;
+    
   } // end method buildUI
   
   /**
@@ -242,7 +258,7 @@ public class DisplayPrefs
         Number newValue) {
     if (! displayFontSizeSlider.isValueChanging()) {
       displayNormalFontSize = (int)displayFontSizeSlider.getValue();
-      UserPrefs.getShared().setPref(DISPLAY_NORMAL_FONT_SIZE_KEY, displayNormalFontSize);
+      UserPrefs.getShared().setPref(DISPLAY_FX_NORMAL_FONT_SIZE_KEY, displayNormalFontSize);
       displaySampleText();
       displayWindow.displayPrefsUpdated(this);
     }
@@ -250,10 +266,11 @@ public class DisplayPrefs
 
   public void displaySampleText () {
     textStyle = new StringBuilder();
-    appendStyle("fill", displayTextColor);
-    appendStyle("background-color", displayBackgroundColor);
-    appendStyle("font-family", displayFont);
+    appendStyle("stroke", "#" + displayTextColorStr);
+    appendStyle("background-color", "#" + displayBackgroundColorStr);
+    appendStyle("font-family", "\"" + displayFont + "\"");
     appendStyle("font-size", displayNormalFontSize);
+    displayTextSample.setStyle(textStyle.toString());
     displayTextSample.setText ("There is nothing worse than a brilliant image of a fuzzy concept.");
   }  
   
