@@ -16,6 +16,7 @@
 
 package com.powersurgepub.notenik2;
 
+  import com.powersurgepub.psutils2.basic.*;
   import com.powersurgepub.psutils2.env.*;
   import com.powersurgepub.psutils2.files.*;
   import com.powersurgepub.psutils2.links.*;
@@ -33,6 +34,8 @@ package com.powersurgepub.notenik2;
   import com.powersurgepub.psutils2.widgets.*;
 
   import java.io.*;
+  import java.net.*;
+  import java.text.*;
   import java.util.*;
 
   import javafx.application.*;
@@ -41,6 +44,7 @@ package com.powersurgepub.notenik2;
   import javafx.scene.control.*;
   import javafx.scene.control.Alert.*;
   import javafx.scene.control.ButtonBar.*;
+  import javafx.scene.input.*;
   import javafx.scene.layout.*;
   import javafx.stage.*;
 
@@ -55,6 +59,7 @@ public class Notenik
     implements
       AppToBackup,
       DisplayWindow,
+      FileSpecOpener,
       ScriptExecutor {
   
   public static final String PROGRAM_NAME    = "Notenik";
@@ -86,6 +91,7 @@ public class Notenik
   // Variables used for logging
   private             Logger              logger;
   private             LogWindow           logWindow;
+  private             LogOutput           logOutput;
   
   /** File of Notes that is currently open. */
   private             NoteIO              noteIO = null;
@@ -108,6 +114,10 @@ public class Notenik
   private             MenuBar             menuBar;
   
   private             Menu                fileMenu        = new Menu("File");
+  private             Menu                openRecentMenu;
+  private             MenuItem            openMasterCollectionMenuItem;
+  private             MenuItem            createMasterCollectionMenuItem;
+  
   private             Menu                collectionMenu  = new Menu("Collection");
   private             Menu                sortMenu        = new Menu("Sort");
   private             Menu                noteMenu        = new Menu("Note");
@@ -149,6 +159,8 @@ public class Notenik
   
   private             AboutWindow         aboutWindow;
   
+  private             PublishWindow       publishWindow;
+  
   private             LinkTweaker         linkTweaker;
   
   private             UserPrefs           userPrefs;
@@ -181,6 +193,72 @@ public class Notenik
   private             boolean             netscapeWritten = false;
   private             boolean             outlineWritten = false;
   private             boolean             indexWritten = false;
+  
+  private             Trouble             trouble = Trouble.getShared();
+
+  private             File                appFolder;
+  private             String              userName;
+  private             String              userDirString;
+  
+  // Replace Window
+  private             ReplaceWindow       replaceWindow;
+  
+  // File Info Window
+  private             FileInfoWindow      fileInfoWindow;
+
+  // Variables used for logging
+
+
+  private DateFormat    longDateFormatter
+      = new SimpleDateFormat ("EEEE MMMM d, yyyy");
+  private DateFormat  backupDateFormatter
+      = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
+  private    DateFormat       dateFormatter
+    = new SimpleDateFormat ("yyyy-MM-dd");
+
+  
+  // The following fields define the fields in the collection. 
+  // private             int                 noteType = NoteParms.NOTES_ONLY_TYPE;
+  // private             DataDictionary      dict = null;
+  // private             RecordDefinition    recDef = null;
+  
+  private             FileChooser         fileChooser = new FileChooser();
+
+  public  static final String             FIND = "Find";
+  public  static final String             FIND_AGAIN = "Again";
+
+  private             String              lastTextFound = "";
+  
+  private             Note                foundNote = null;
+  
+  private             StringBuilder       titleBuilder = new StringBuilder();
+  private             int                 titleStart = -1;
+  private             StringBuilder       linkBuilder = new StringBuilder();
+  private             int                 linkStart = -1;
+  private             StringBuilder       tagsBuilder = new StringBuilder();
+  private             int                 tagsStart = -1;
+  private             StringBuilder       bodyBuilder = new StringBuilder();
+  private             int                 bodyStart = -1;
+
+  // Fields used to validate Web Page Notes
+  private             javax.swing.Timer   validateURLTimer;
+  private             ThreadGroup         webPageGroup;
+  private             ArrayList           urlValidators;
+  private             int                 progressMax = 0;
+  private             int                 progress = 0;
+  private             int                 badPages = 0;
+  
+  // System ClipBoard fields
+  boolean             clipBoardOwned = false;
+  Clipboard           clipBoard = null;
+  Transferable        clipContents = null;
+  
+  private             TextMergeHarness    textMerge = null;
+  
+  private             DisplayPane          displayPane;
+  private             EditPane             editPane;
+  public static final int DISPLAY_TAB_INDEX = 0;
+  public static final int CONTENT_TAB_INDEX = 1;
   
   @Override
   public void start(Stage primaryStage) {
@@ -278,8 +356,45 @@ public class Notenik
     
     collectionPrefs.setScene();
     
+    exporter = new NoteExport(this);
+    
+    masterCollection = new MasterCollection();
+    filePrefs.setRecentFiles(masterCollection.getRecentFiles());
+    masterCollection.registerMenu(openRecentMenu, this);
+    
+    masterCollection.load();
+    
+    if (filePrefs.purgeRecentFilesAtStartup()) {
+      masterCollection.purgeInaccessibleFiles();
+    }
+    
+    if (masterCollection.hasMasterCollection()) {
+      createMasterCollectionMenuItem.setDisable(true);
+      openMasterCollectionMenuItem.setDisable(false);
+    } else {
+      createMasterCollectionMenuItem.setDisable(false);
+      openMasterCollectionMenuItem.setDisable(true);
+    }
+    
+    // initRecDef();
+    // noteList = new NoteList(recDef);
+    // position = new NotePositioned(recDef);
+    // buildNoteTabs();
+
+    // Set initial UI prefs
+    GeneralPrefs.getShared().setSplitPane(mainSplitPane);
+    GeneralPrefs.getShared().setMainWindow(primaryStage);
+    
     // Now let's bring the curtains up
     primaryStage.setScene(primaryScene);
+    primaryStage.setWidth
+        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_WIDTH, 620));
+    primaryStage.setHeight
+        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_HEIGHT, 620));
+    primaryStage.setX
+        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_LEFT, 100));
+    primaryStage.setY
+      (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_TOP,  100));
     primaryStage.show();
     
     WindowMenuManager.getShared().hide(logWindow);
@@ -297,6 +412,33 @@ public class Notenik
         editMenu, toolsMenu, reportsMenu, optionsMenu, windowMenu, helpMenu);
     menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
     primaryLayout.getChildren().add(menuBar);
+    
+    openRecentMenu.setText("Open Recent");
+    fileMenu.getItems().add(openRecentMenu);
+    
+    openMasterCollectionMenuItem = new MenuItem();
+    KeyCombination mkc
+        = new KeyCharacterCombination("M", KeyCombination.SHORTCUT_DOWN);
+    openMasterCollectionMenuItem.setAccelerator(mkc);
+    openMasterCollectionMenuItem.setText("Open Master Collection");
+    openMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        openMasterCollection();
+      }
+    });
+    fileMenu.getItems().add(openMasterCollectionMenuItem);
+    
+    createMasterCollectionMenuItem = new MenuItem();
+    createMasterCollectionMenuItem.setText("Create Master Collection...");
+    createMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        createMasterCollection();
+      }
+    });
+    fileMenu.getItems().add(createMasterCollectionMenuItem);
+    
   }
   
   /**
@@ -378,7 +520,83 @@ public class Notenik
    */
   public static void main(String[] args) {
     launch(args);
-  }  
+  } 
+  
+  private void createMasterCollection() {
+    DirectoryChooser chooser = new DirectoryChooser();
+    chooser.setTitle ("Create Master Collection");
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+      chooser.setInitialDirectory (currentDirectory);
+    }
+    File selectedFile = chooser.showDialog (primaryStage);
+    if(selectedFile != null) {
+      int filesSaved = masterCollection.createMasterCollection(selectedFile);
+      if (filesSaved > 0) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.initOwner(primaryStage);
+        alert.setTitle("Master Collection Creation Results");
+        alert.setHeaderText(null);
+        alert.setContentText(String.valueOf(filesSaved) 
+                + " Recent Files successfully saved to "
+                + GlobalConstants.LINE_FEED
+                + selectedFile.toString());
+        alert.showAndWait();
+        createMasterCollectionMenuItem.setDisable(true);
+        openMasterCollectionMenuItem.setDisable(false);
+      } // End if we saved any recent files
+    } // End if user selected a file
+  } // end method createMasterCollection
+  
+  private void openMasterCollection() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      if (masterCollection.hasMasterCollection()) {
+        File selectedFile = masterCollection.getMasterCollectionFolder();
+        if (goodCollection(selectedFile)) {
+          closeFile();
+          openFile (selectedFile, "", true);
+        } else {
+          Trouble.getShared().report (
+              "Trouble opening file " + selectedFile.toString(),
+              "File Open Error");
+        }
+      } // end if we have a master collection
+    } // end if mod ok
+  }
+  
+  public void handleOpenFile (FileSpec fileSpec) {
+    handleOpenFile (new File(fileSpec.getPath()));
+  }
+  
+  /**      
+    Standard way to respond to a document being passed to this application on a Mac.
+   
+    @param inFile File to be processed by this application, generally
+                  as a result of a file or directory being dragged
+                  onto the application icon.
+   */
+  public void handleOpenFile (File inFile) {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      if (goodCollection(inFile)) {
+        closeFile();
+        openFile (inFile, "", true);
+      }
+    }
+  }
+  
+  /**
+   Close the current notes collection in an orderly fashion. 
+  */
+  private void closeFile() {
+    if (this.noteFile != null) {
+      publishWindow.closeSource();
+      if (currentFileSpec != null) {
+        currentFileSpec.setNoteSortParm(noteSortParm.getParm());
+      }
+      filePrefs.handleClose();
+    }
+  }
   
   public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
     if (position != null && displayTab != null) {
