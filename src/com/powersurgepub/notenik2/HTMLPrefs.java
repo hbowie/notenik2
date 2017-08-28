@@ -125,7 +125,7 @@ public class HTMLPrefs
 		rowCount++;
   } // end method buildUI
 
-  public void setCollection(FileSpec collection) {
+  public void setFileSpec(FileSpec collection) {
     this.collection = collection;
     htmlFolderTextField.setText("");
     if (collection != null) {
@@ -152,13 +152,15 @@ public class HTMLPrefs
   }
   
   public void savePrefs() {
-    File htmlFolder = new File(htmlFolderTextField.getText());
-    if (htmlFolderTextField.getText().trim().length() == 0
-        || (htmlFolder.exists() 
-          && htmlFolder.canRead()
-          && htmlFolder.canWrite())) {
-      collection.setHTMLFolder(htmlFolderTextField.getText());
-    } 
+    if (collection != null) {
+      File htmlFolder = new File(htmlFolderTextField.getText());
+      if (htmlFolderTextField.getText().trim().length() == 0
+          || (htmlFolder.exists() 
+            && htmlFolder.canRead()
+            && htmlFolder.canWrite())) {
+        collection.setHTMLFolder(htmlFolderTextField.getText());
+      } 
+    }
   }
   
   /**

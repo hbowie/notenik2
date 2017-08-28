@@ -168,6 +168,15 @@ public class EditPane {
     
   }
   
+  /**
+   Get the pane after the widgets have been added. 
+  
+   @return The pane containing all the edit widgets. 
+  */
+  public Pane getPane() {
+    return editPane;
+  }
+  
   public boolean hasLink() {
     return (linkWidget != null && linkWidget.getText().length() > 0);
   }

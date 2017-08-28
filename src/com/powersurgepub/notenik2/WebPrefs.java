@@ -17,6 +17,7 @@
 package com.powersurgepub.notenik2;
 
 	import com.powersurgepub.psutils2.env.*;
+  import com.powersurgepub.psutils2.files.*;
   import com.powersurgepub.psutils2.prefs.*;
 	import com.powersurgepub.psutils2.publish.*;
 	import com.powersurgepub.psutils2.ui.*;
@@ -241,6 +242,15 @@ public class WebPrefs
     saveCSShrefPref();
     saveFontFamilyPref();
     saveFontSizePref();
+  }
+  
+  /**
+   Set the File Spec whose prefs are to be modified, if any. 
+  
+   @param fileSpec 
+  */
+  public void setFileSpec(FileSpec fileSpec) {
+    // Nothing to do
   }
 
 }

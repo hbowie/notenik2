@@ -24,6 +24,7 @@ package com.powersurgepub.notenik2;
 
   import java.text.*;
 
+  import javafx.scene.layout.*;
   import javafx.scene.web.*;
 
 /**
@@ -63,6 +64,7 @@ public class DisplayPane {
   
   private DateFormat dateFormat = new SimpleDateFormat ("EEEE MMMM d, yyyy");
   
+  private BorderPane displayPane;
   private WebView displayView;
   private WebEngine webEngine;
   
@@ -71,6 +73,8 @@ public class DisplayPane {
     this.displayPrefs = displayPrefs;
     displayView = new WebView();
     webEngine = displayView.getEngine();
+    displayPane = new BorderPane();
+    displayPane.setCenter(displayView);
     mdToHTML = MdToHTML.getShared();
    	/* while (rules.hasMoreElements()) {
    	    String name = (String) rules.nextElement();
@@ -80,6 +84,10 @@ public class DisplayPane {
           false);
    	} */
     // kit.setStyleSheet(styles);
+  }
+  
+  public Pane getPane() {
+    return displayPane;
   }
   
   /**

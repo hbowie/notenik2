@@ -215,7 +215,7 @@ public class FolderSyncPrefs
     folderSyncPrefsData.savePrefs();
   }
   
-  public void setCollection(FileSpec collection) {
+  public void setFileSpec(FileSpec collection) {
     this.collection = collection;
     folderSyncPrefsData.setCollection(collection);
     if (collection != null) {

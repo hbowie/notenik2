@@ -17,6 +17,7 @@
 package com.powersurgepub.notenik2;
 
   import com.powersurgepub.psutils2.env.*;
+import com.powersurgepub.psutils2.files.*;
   import com.powersurgepub.psutils2.prefs.*;
 	import com.powersurgepub.psutils2.ui.*;
   import com.powersurgepub.psutils2.widgets.*;
@@ -311,5 +312,14 @@ public class FavoritesPrefs
   */
   public void save() {
     
+  }
+  
+  /**
+   Set the File Spec whose prefs are to be modified, if any. 
+  
+   @param fileSpec 
+  */
+  public void setFileSpec(FileSpec fileSpec) {
+    // Nothing to do
   }
 }
