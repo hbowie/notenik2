@@ -16,6 +16,7 @@
 
 package com.powersurgepub.notenik2;
 
+  import com.powersurgepub.psutils2.basic.*;
   import com.powersurgepub.psutils2.markup.*;
   import com.powersurgepub.psutils2.strings.*;
   import com.powersurgepub.psutils2.tags.*;
@@ -34,60 +35,27 @@ package com.powersurgepub.notenik2;
  */
 public class DisplayPane {
   
-  public static final String EVENT_TYPE_CLICK = "click";
-  public static final String EVENT_TYPE_MOUSEOVER = "mouseover";
-  public static final String EVENT_TYPE_MOUSEOUT = "mouseclick";
+  private DisplayPrefs  displayPrefs;
   
-  private String startCategoryParagraph 
-      = "<p><font size=3 face=\"Lucida Grande, Verdana, Arial, sans-serif\"><em>";
-  private String horizontalRule = "<hr>";
-  private String startTitleParagraph 
-      = "<p><font size=4 face=\"Lucida Grande, Verdana, Arial, sans-serif\"><b>";
-  private String startNormalParagraph 
-      = "<p><font size=3 face=\"Lucida Grande, Verdana, Arial, sans-serif\">";
-  private String endCategoryParagraph
-      = "</em></font></p>";
-  private String endTitleParagraph 
-      = "</b></font></p>";
-  private String endNormalParagraph
-      = "</font></p>";
+  private String        endSpecialTag = "";
   
-  private Trouble trouble = Trouble.getShared();
+  private DateFormat    dateFormat = new SimpleDateFormat ("EEEE MMMM d, yyyy");
   
-  private DisplayPrefs displayPrefs;
-  
-  String endSpecialTag = "";
-  
-  private StringBuffer text;
-  
-  private MdToHTML mdToHTML;
-  
-  private DateFormat dateFormat = new SimpleDateFormat ("EEEE MMMM d, yyyy");
-  
-  private BorderPane displayPane;
-  private WebView displayView;
-  private WebEngine webEngine;
+  private WebPane       webPane;
   
   /** Creates new form DisplayTab */
   public DisplayPane(DisplayPrefs displayPrefs) {
     this.displayPrefs = displayPrefs;
-    displayView = new WebView();
-    webEngine = displayView.getEngine();
-    displayPane = new BorderPane();
-    displayPane.setCenter(displayView);
-    mdToHTML = MdToHTML.getShared();
-   	/* while (rules.hasMoreElements()) {
-   	    String name = (String) rules.nextElement();
-   	    Style rule = styles.getStyle(name);
-   	    Logger.getShared().recordEvent (LogEvent.NORMAL, 
-          "Display Stylesheet rule " + rule.toString(),
-          false);
-   	} */
-    // kit.setStyleSheet(styles);
+    webPane = new WebPane();
   }
   
+  /**
+   Get the pane containing the webview. 
+  
+   @return The pane containing the webview. 
+  */
   public Pane getPane() {
-    return displayPane;
+    return webPane.getPane();
   }
   
   /**
@@ -104,19 +72,22 @@ public class DisplayPane {
   }
   
   public void startDisplay() {
-    text = new StringBuffer();
-    text.append ("<html>");
-    text.append ("<body bgcolor=\"#" 
+    webPane.initPage();
+    webPane.appendLine ("<html>");
+    webPane.appendLine("<head>");
+    webPane.appendLine("<style>");
+    webPane.appendLine("body { color: #" 
+        + StringUtils.colorToHexString(displayPrefs.getDisplayTextColor())
+        + "; "
+        + " background-color: #"
         + StringUtils.colorToHexString(displayPrefs.getDisplayBackgroundColor())
-        + "\" text=\"#"
-        + StringUtils.colorToHexString(displayPrefs.getDisplayTextColor())
-        + "\" link=\"#"
-        + StringUtils.colorToHexString(displayPrefs.getDisplayTextColor())
-        + "\" alink=\"#"
-        + StringUtils.colorToHexString(displayPrefs.getDisplayTextColor())
-        + "\" vlink=\"#"
-        + StringUtils.colorToHexString(displayPrefs.getDisplayTextColor())
-        + "\">");
+        + "; "
+        + getFontFamily()
+        + getFontSize(0)
+        + "}");
+    webPane.appendLine("</style>");
+    webPane.appendLine("</head>");
+    webPane.appendLine("<body>");
   }
   
   public void displayTags(Tags tags) {
@@ -129,90 +100,12 @@ public class DisplayPane {
   
   public void displayTitle(String title) {
     // Display Title in bold and increased size
-    appendParagraph ("b", 1, "", "", title);
+    appendParagraph ("strong", 1, "", "", title);
   }
   
   public void displayBody(String body) {
     // Display Body, if there is any
-    // System.out.println("DisplayPane.displayBody");
-    String bodyHTML = mdToHTML.markdownToHtml(body);
-    
-    // Let's try to honor the user's request for a type face and a type size
-    // Due to Swing limitations, we're using the ancient font tag
-    if (body.length() > 0) {
-      // Let's start things out right
-      startFont(0);
-      int i = 0;
-      while ( i < bodyHTML.length()) {
-        // System.out.println("  characters at position " + String.valueOf(i)
-        //     + nextChars(bodyHTML, i, 20));
-        // Scan repeatedly for a tag that will override the font tag
-        // i is where we will start the next scan
-        // j is the start of the next apparent HTML tag
-        // k is the end of the starting tag
-        // l is the start of the ending tag
-        // m is the end of the ending tag
-        int j = bodyHTML.indexOf("<", i);
-        if (j < 0) { 
-          j = bodyHTML.length(); 
-        }
-        if (j > i) {
-          text.append(bodyHTML.substring(i, j));
-          i = j+1;
-        }
-        if (i < bodyHTML.length()) {
-          int k = bodyHTML.indexOf(">", j+2);
-          String disruptiveTag = "";
-          if (nextChars(bodyHTML, j + 1, 1).equalsIgnoreCase("h")) {
-            disruptiveTag = nextChars(bodyHTML, j + 1, 2);
-          }
-          if (nextChars(bodyHTML, j + 1, 3).equalsIgnoreCase("pre")) {
-            disruptiveTag = "pre";
-          }
-          if (disruptiveTag.length() > 0) {
-            endFont();
-            String endTag = "</" + disruptiveTag;
-            if (j < bodyHTML.length()) {
-              
-              if (k > 0) {
-                int l = bodyHTML.indexOf(endTag, k+1);
-                if (l > 0) {
-                  int m = bodyHTML.indexOf(">", l+3);
-                  if (m > 0) {
-                    text.append(bodyHTML.substring(j, k+1));
-                    if (! disruptiveTag.equalsIgnoreCase("pre")) {
-                      startFontFace();
-                    }
-                    text.append(bodyHTML.substring(k+1, l));
-                    if (! disruptiveTag.equalsIgnoreCase("pre")) {
-                      endFont();
-                    }
-                    text.append(bodyHTML.substring(l, m+1));
-                    startFont(0);
-                    i = m + 1;
-                  } // end if we found the end of the closing tag
-                } // end if we found start of heading close
-              } // end if we found close for heading tag
-            } // end if we found the beginning of another tag
-          } // end if we found the beginning of another disruptive tag
-          else {
-            text.append(bodyHTML.substring(j, k + 1));
-            i = k+1;
-          }
-        } // end if we have more text to scan
-      } // end while scanning for headings
-      // text.append(bodyHTML);
-      // appendParagraph ("", 0, "", "", description);
-      endFont();
-    }
-  }
-  
-  private String nextChars(String str, int start, int length) {
-    int end = start + length;
-    if (end > str.length()) {
-      end = str.length();
-    }
-    return str.substring(start, end);
+    webPane.appendMarkdown(body);
   }
   
   /**
@@ -220,7 +113,7 @@ public class DisplayPane {
   */
   public void displayDivider() {
     
-    text.append ("<br><hr>");
+    webPane.appendLine ("<br /><hr />");
   }
   
   public void displayAuthor(Author author) {
@@ -277,27 +170,27 @@ public class DisplayPane {
 
       if (sourceType.length() > 0
           && (! sourceType.equalsIgnoreCase(WisdomSource.UNKNOWN))) {
-        text.append ("the " + sourceObj.getTypeLabel().toLowerCase() + ", ");
+        webPane.append ("the " + sourceObj.getTypeLabel().toLowerCase() + ", ");
       }
 
       if (source.length() > 0 
           && (! source.equalsIgnoreCase (WisdomSource.UNKNOWN))) {
-        text.append("<cite>");
+        webPane.appendLine("<cite>");
         appendItem (url, source, 0, 1);
-        text.append("</cite>");
+        webPane.appendLine("</cite>");
         if (minorTitle.length() > 0) {
-          text.append(", ");
+          webPane.append(", ");
         }
       }
       if (minorTitle.length() > 0) {
-        text.append("\"" + minorTitle + "\"");
+        webPane.append("\"" + minorTitle + "\"");
       }
       if (pages.length() > 0) {
-        StringBuffer pagesLabel = new StringBuffer("page");
+        StringBuilder pagesLabel = new StringBuilder("page");
         if (pages.indexOf("-") > 0) {
           pagesLabel.append("s");
         }
-        text.append(", " + pagesLabel + " " + pages);
+        webPane.append(", " + pagesLabel + " " + pages);
       }
 
       endParagraph();
@@ -315,7 +208,7 @@ public class DisplayPane {
         appendParagraph ("", 0, "", "Page(s)", item.getPages());
       }
        */
-      StringBuffer publisher = new StringBuffer(sourceObj.getCity());
+      StringBuilder publisher = new StringBuilder(sourceObj.getCity());
       if (publisher.length() > 0) {
         publisher.append (": ");
       }
@@ -344,7 +237,7 @@ public class DisplayPane {
   public void displayRights(String rights, String year, String rightsOwner) {
     // Display Rights / Publication Year
     String yearRightsLabel = "First Published";
-    StringBuffer yearRights = new StringBuffer();
+    StringBuilder yearRights = new StringBuilder();
 
     if (rights.length() > 0
         && rights.startsWith ("Copyright")) {
@@ -391,16 +284,15 @@ public class DisplayPane {
   }
   
   public void finishDisplay() {
-    text.append ("</body>");
-    text.append ("</html>");
-    webEngine.loadContent(text.toString());;
+    webPane.appendLine ("</body>");
+    webPane.appendLine ("</html>");
+    webPane.loadPage();
   }
   
   public void displayDateAdded(String dateAdded) {
     // Display Date Added
 
-    appendParagraph ("", 0, "", "Added", 
-        dateAdded);
+    appendParagraph ("", 0, "", "Added", dateAdded);
 
   }
   
@@ -439,6 +331,7 @@ public class DisplayPane {
       }
     }
     appendParagraph ("", 0, link, label, val);
+    webPane.setLaunchLink(link);
   }
   
   public void displayLabelOnly(
@@ -477,36 +370,56 @@ public class DisplayPane {
     if (label.length() > 0) {
       intro = label + ": ";
     }
-    text.append ("<p>");
-    startFont(fontVariance);
-    text.append (
+    webPane.append ("<p>");
+    // startFont(fontVariance);
+    webPane.append (
         startSpecialTag +
         intro);
   }
 
   public void startFont (int fontVariance) {
-    int fontSize = displayPrefs.getDisplayNormalFontSize() + fontVariance;
-    if (fontSize < 1) {
-      fontSize = 1;
-    }
-    if (fontSize > 7) {
-      fontSize = 7;
-    }
-    text.append (
-        "<font size=" +
-        String.valueOf (fontSize) +
-        " face=\"" +
-        displayPrefs.getDisplayFont() +
-        ", Verdana, Arial, sans-serif\">");
+    webPane.append (
+        "<span style=\" " +
+        getFontFamily() +
+        getFontSize(fontVariance) +
+        "\">");
   }
   
-  public void startFontFace() {
-    text.append (
-        "<font face=\"" +
-        displayPrefs.getDisplayFont() +
-        ", Verdana, Arial, sans-serif\">");
+  /**
+   Get the user's preferred font-family, formatted as a CSS rule. 
+  
+   @return CSS for user's preferred font-family. 
+  */
+  public String getFontFamily() {
+    return 
+        "font-family: '" + 
+        displayPrefs.getDisplayFont() + 
+        "', Verdana, Arial, sans-serif; ";
+  }
+  
+  /**
+   Get the user's preferred font-size, formatted as a CSS rule. 
+  
+   @param fontVariance Amount to add to the normal size. 
+  
+   @return CSS for user's preferred font-size. 
+  */
+  public String getFontSize(int fontVariance) {
+    int fontSize = displayPrefs.getDisplayNormalFontSize() + fontVariance;
+    return 
+        "font-size: " +
+        String.valueOf (fontSize) +
+        "; ";
   }
 
+  /**
+   Append another item to a list of items, and optionally specify a link. 
+  
+   @param href An optional link. 
+   @param body The text of the item. 
+   @param listPosition This item's position in the list. 
+   @param listLength The total length of the list. 
+  */
   public void appendItem (
       String href, 
       String body,
@@ -516,6 +429,17 @@ public class DisplayPane {
     appendItem (href, body, "", "", listPosition, listLength);
   }
   
+  /**
+   Append another item to a list of items, and optionally specify a link and a
+   parenthetical expression following the item. 
+  
+   @param href An optional link. 
+   @param body The text of the item. 
+   @param parenHref An optional link for a parenthetical expression. 
+   @param parenthetical An optional parenthetical expression. 
+   @param listPosition This item's position in the list. 
+   @param listLength The total length of the list. 
+  */
   public void appendItem (
       String href, 
       String body,
@@ -553,7 +477,7 @@ public class DisplayPane {
         parenEndLink = "</a>";
       }
     }
-    text.append (
+    webPane.append (
         startLink +
         body +
         endLink +
@@ -566,13 +490,12 @@ public class DisplayPane {
   }
   
   public void endParagraph () {
-    text.append (endSpecialTag);
-    endFont();
-    text.append ("</p>");
+    webPane.append (endSpecialTag);
+    webPane.appendLine ("</p>");
   }
 
   public void endFont () {
-    text.append ("</font>");
+    webPane.append ("</span>");
   }
   
   /**

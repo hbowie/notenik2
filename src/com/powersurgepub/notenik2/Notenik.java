@@ -94,8 +94,8 @@ public class Notenik
   private             String  country = "  ";
   private             String  language = "  ";
   
-  private             Appster appster;
-  private             Home home;
+  private             Appster             appster;
+  private             Home                home;
   private             ProgramVersion      programVersion;
   
   // Variables used for logging
@@ -112,6 +112,8 @@ public class Notenik
   private             String              oldTitle = "";
   private             String              oldSeq = "";
   private             String              fileName = "";
+  private             boolean             fileOpen = false;
+  private             boolean             noteDisplayed = false;
   
   /** This is the current collection of Notes. */
   private             NoteList            noteList = null;
@@ -119,6 +121,7 @@ public class Notenik
   private             Stage               primaryStage;
   private             VBox                primaryLayout;
   private             Scene               primaryScene;
+  private             FXUtils             fxUtils;
   
   /*
    Menu Definitions
@@ -126,9 +129,18 @@ public class Notenik
   private             MenuBar             menuBar;
   
   private             Menu                fileMenu        = new Menu("File");
+  private             MenuItem            openMenuItem;
   private             Menu                openRecentMenu;
+  private             MenuItem            openEssentialMenuItem;
   private             MenuItem            openMasterCollectionMenuItem;
   private             MenuItem            createMasterCollectionMenuItem;
+  private             MenuItem            openHelpNotesMenuItem;
+  private             MenuItem            fileNewMenuItem;
+  private             MenuItem            generateTemplateMenuItem;
+  private             MenuItem            fileSaveMenuItem;
+  private             MenuItem            saveAllMenuItem;
+  private             MenuItem            fileSaveAsMenuItem;
+  
   private             MenuItem            purgeMenuItem;
   
   private             Menu                collectionMenu  = new Menu("Collection");
@@ -306,6 +318,7 @@ public class Notenik
     this.primaryStage = primaryStage;
     primaryStage.setTitle("Notenik");
     primaryLayout = new VBox();
+    fxUtils = FXUtils.getShared();
     
     // Build most of the UI elements and init the Window Menu Manager
     buildMenuBar();
@@ -424,8 +437,8 @@ public class Notenik
     }
 
     // Set initial UI prefs
-    GeneralPrefs.getShared().setSplitPane(mainSplitPane);
-    GeneralPrefs.getShared().setMainWindow(primaryStage);
+    generalPrefs.setSplitPane(mainSplitPane);
+    generalPrefs.setMainWindow(primaryStage);
     
     // Get App Folder
     appFolder = home.getAppFolder();
@@ -498,18 +511,21 @@ public class Notenik
     // Now let's bring the curtains up
     primaryStage.setScene(primaryScene);
     primaryStage.setWidth
-        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_WIDTH, 620));
+        (userPrefs.getPrefAsDouble (FavoritesPrefs.PREFS_WIDTH, 620));
     primaryStage.setHeight
-        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_HEIGHT, 620));
+        (userPrefs.getPrefAsDouble (FavoritesPrefs.PREFS_HEIGHT, 620));
     primaryStage.setX
-        (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_LEFT, 100));
+        (userPrefs.getPrefAsDouble (FavoritesPrefs.PREFS_LEFT, 100));
     primaryStage.setY
-      (userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_TOP,  100));
+      (userPrefs.getPrefAsDouble (FavoritesPrefs.PREFS_TOP,  100));
     primaryStage.show();
     
     WindowMenuManager.getShared().hide(logWindow);
   }
   
+  /**
+   Build all the menu items.
+  */
   private void buildMenuBar() {
     menuBar = new MenuBar();
     menuBar.setUseSystemMenuBar(true);
@@ -518,9 +534,45 @@ public class Notenik
     menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
     primaryLayout.getChildren().add(menuBar);
     
+    //
+    // Let's build out the file Menu
+    //
+    
+    // Open Menu Item
+    openMenuItem = new MenuItem("Open...");
+    KeyCombination okc
+        = new KeyCharacterCombination("O", KeyCombination.SHORTCUT_DOWN);
+    openMenuItem.setAccelerator(okc);
+    openMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        if (editingMasterCollection) {
+          openFileFromCurrentNote();
+        } else {
+          userOpenFile();
+        }
+      }
+    });
+    fileMenu.getItems().add(openMenuItem);
+    
+    // Open Essential Menu Item
+    openEssentialMenuItem = new MenuItem("Open Essential Collection");
+    KeyCombination ekc
+        = new KeyCharacterCombination("E", KeyCombination.SHORTCUT_DOWN);
+    openEssentialMenuItem.setAccelerator(ekc);
+    openEssentialMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        openEssentialCollection();
+      }
+    });
+    fileMenu.getItems().add(openEssentialMenuItem);
+    
+    // Open Recent Menu Item
     openRecentMenu = new Menu("Open Recent");
     fileMenu.getItems().add(openRecentMenu);
     
+    // Open Master Collection Menu Item
     openMasterCollectionMenuItem = new MenuItem();
     KeyCombination mkc
         = new KeyCharacterCombination("M", KeyCombination.SHORTCUT_DOWN);
@@ -534,6 +586,7 @@ public class Notenik
     });
     fileMenu.getItems().add(openMasterCollectionMenuItem);
     
+    // Create Master Collection Menu Item
     createMasterCollectionMenuItem = new MenuItem();
     createMasterCollectionMenuItem.setText("Create Master Collection...");
     createMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -544,6 +597,75 @@ public class Notenik
     });
     fileMenu.getItems().add(createMasterCollectionMenuItem);
     
+    // Open Help Notes Menu Item
+    openHelpNotesMenuItem = new MenuItem("Open Help Notes");
+    openHelpNotesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        openHelpNotes();
+      }
+    });
+    fileMenu.getItems().add(openHelpNotesMenuItem);
+    
+    fxUtils.addSeparator(fileMenu);
+    
+    // New Collection Menu Item
+    fileNewMenuItem = new MenuItem("New...");
+    fileNewMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        userNewFile();
+      }
+    });
+    fileMenu.getItems().add(fileNewMenuItem);
+    
+    // Generate Template Menu Item
+    generateTemplateMenuItem = new MenuItem("Generate Template...");
+    generateTemplateMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        generateTemplate();
+      }
+    });
+    fileMenu.getItems().add(generateTemplateMenuItem);
+    
+    fxUtils.addSeparator(fileMenu);
+    
+    fileSaveMenuItem = new MenuItem("Save");
+    KeyCombination skc
+        = new KeyCharacterCombination("S", KeyCombination.SHORTCUT_DOWN);
+    fileSaveMenuItem.setAccelerator(skc);
+    fileSaveMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        save();
+      }
+    });
+    fileMenu.getItems().add(fileSaveMenuItem);
+    
+    // Save All Menu Item
+    saveAllMenuItem = new MenuItem("Save All");
+    saveAllMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        saveAll();
+      }
+    });
+    fileMenu.getItems().add(saveAllMenuItem);
+    
+    // Save As Menu Item
+    fileSaveAsMenuItem = new MenuItem("Save As...");
+    fileSaveAsMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        userSaveFileAs();
+      }
+    });
+    fileMenu.getItems().add(fileSaveAsMenuItem);
+    
+    fxUtils.addSeparator(fileMenu);
+    
+    // Purge Menu Item
     purgeMenuItem = new MenuItem("Purge...");
     purgeMenuItem.setOnAction(e -> purgeMenuItemActionPerformed());
     fileMenu.getItems().add(purgeMenuItem);
@@ -656,9 +778,6 @@ public class Notenik
     selected.addListener((ListChangeListener.Change<? extends Integer> change) ->
       {
         int index = selModel.getSelectedIndex();
-        System.out.println("Selected Row = " + String.valueOf(index));
-        System.out.println("Selected Note Title = " 
-            + noteList.get2(index).getTitle());
         selectTableRow();
       });
     listPane = new BorderPane();
@@ -771,6 +890,8 @@ public class Notenik
       }
       filePrefs.handleClose();
     }
+    fileOpen = false;
+    noteDisplayed = false;
   }
   
   /**
@@ -1273,136 +1394,138 @@ public class Notenik
     
     boolean modOK = true;
     
-    Note note = position.getNote();
-    
-    // Check each field for changes
-    for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
-      DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
-      String fieldName = fieldDef.getProperName();
-      if (i < editPane.getNumberOfFields()) {
-        DataWidget widget = editPane.get(i);
-        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
-          if (! note.equalsTitle (widget.getText())) {
-            oldTitle = note.getTitle();
-            note.setTitle (widget.getText());
-            modified = true;
+    if (fileOpen && noteDisplayed) {
+      Note note = position.getNote();
+
+      // Check each field for changes
+      for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
+        String fieldName = fieldDef.getProperName();
+        if (i < editPane.getNumberOfFields()) {
+          DataWidget widget = editPane.get(i);
+          if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+            if (! note.equalsTitle (widget.getText())) {
+              oldTitle = note.getTitle();
+              note.setTitle (widget.getText());
+              modified = true;
+            }
           }
-        }
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
-          if ((widget.getText().equals (note.getLinkAsString()))
-              || ((widget.getText().length() == 0) && note.blankLink())) {
-            // No change
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+            if ((widget.getText().equals (note.getLinkAsString()))
+                || ((widget.getText().length() == 0) && note.blankLink())) {
+              // No change
+            } else {
+              note.setLink (widget.getText());
+              modified = true;
+            }
+          }
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+            if (! note.equalsTags (widget.getText())) {
+              note.setTags (widget.getText());
+              modified = true;
+            }
+          }
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+            if (! widget.getText().equals (note.getBody())) {
+              note.setBody (widget.getText());
+              modified = true;
+            }
+          } 
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
+            if (! widget.getText().equals (note.getSeq())) {
+              note.setSeq (widget.getText());
+              modified = true;
+            }
+          } 
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
+            ItemStatus statusValue = new ItemStatus(widget.getText());
+            if (note.getStatus().compareTo(statusValue) != 0) {
+              note.setStatus (widget.getText());
+              modified = true;
+            }
+          } 
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.RECURS_FIELD_NAME)) {
+            RecursValue recursValue = new RecursValue(widget.getText());
+            if (note.getRecurs().compareTo(recursValue) != 0) {
+              note.setRecurs (widget.getText());
+              modified = true;
+            }
+          }  
+          else
+          if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)) {
+            String newDate = widget.getText();
+            if (note.getDateAsString().compareTo(newDate) != 0) {
+              note.setDate(newDate);
+              modified = true;
+            }
+          }
+          else {
+            DataField nextField = note.getField(i);
+            if (! widget.getText().equals(nextField.getData())) {
+              note.storeField(fieldName, widget.getText());
+              modified = true;
+            } // end if generic field has been changed
+          } // end if generic field
+        } // end if we have a widget
+      } // end for each field
+
+      // If entry has been modified, then let's update if we can
+      if (modified) {
+
+        // Got to have a title
+        String newFileName = note.getFileName();
+        if ((! note.hasTitle()) || note.getTitle().length() == 0) {
+          Alert alert = new Alert(AlertType.CONFIRMATION);
+          alert.setTitle("Data Entry Error");
+          alert.setContentText
+            ("The Note cannot be saved because the Title field has been left blank");
+          ButtonType okType = new ButtonType("OK, let me fix it");
+          ButtonType cancelType = new ButtonType(
+              "Cancel and discard the Note", ButtonData.CANCEL_CLOSE);
+          alert.getButtonTypes().setAll(okType, cancelType);
+          Optional<ButtonType> result = alert.showAndWait();
+          if (result.get() == okType){
+            modOK = true;
           } else {
-            note.setLink (widget.getText());
-            modified = true;
-          }
-        }
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
-          if (! note.equalsTags (widget.getText())) {
-            note.setTags (widget.getText());
-            modified = true;
-          }
-        }
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
-          if (! widget.getText().equals (note.getBody())) {
-            note.setBody (widget.getText());
-            modified = true;
+            modOK = false;
           }
         } 
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
-          if (! widget.getText().equals (note.getSeq())) {
-            note.setSeq (widget.getText());
-            modified = true;
-          }
-        } 
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
-          ItemStatus statusValue = new ItemStatus(widget.getText());
-          if (note.getStatus().compareTo(statusValue) != 0) {
-            note.setStatus (widget.getText());
-            modified = true;
-          }
-        } 
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.RECURS_FIELD_NAME)) {
-          RecursValue recursValue = new RecursValue(widget.getText());
-          if (note.getRecurs().compareTo(recursValue) != 0) {
-            note.setRecurs (widget.getText());
-            modified = true;
-          }
-        }  
-        else
-        if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)) {
-          String newDate = widget.getText();
-          if (note.getDateAsString().compareTo(newDate) != 0) {
-            note.setDate(newDate);
-            modified = true;
-          }
-        }
-        else {
-          DataField nextField = note.getField(i);
-          if (! widget.getText().equals(nextField.getData())) {
-            note.storeField(fieldName, widget.getText());
-            modified = true;
-          } // end if generic field has been changed
-        } // end if generic field
-      } // end if we have a widget
-    } // end for each field
-    
-    // If entry has been modified, then let's update if we can
-    if (modified) {
-      
-      // Got to have a title
-      String newFileName = note.getFileName();
-      if ((! note.hasTitle()) || note.getTitle().length() == 0) {
-        Alert alert = new Alert(AlertType.CONFIRMATION);
-        alert.setTitle("Data Entry Error");
-        alert.setContentText
-          ("The Note cannot be saved because the Title field has been left blank");
-        ButtonType okType = new ButtonType("OK, let me fix it");
-        ButtonType cancelType = new ButtonType(
-            "Cancel and discard the Note", ButtonData.CANCEL_CLOSE);
-        alert.getButtonTypes().setAll(okType, cancelType);
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.get() == okType){
-          modOK = true;
-        } else {
+        else 
+        // If we changed the title, then check to see if we have another 
+        // Note by the same name
+        if ((! newFileName.equals(fileName))
+            && noteIO.exists(newFileName)
+            && (! newFileName.equalsIgnoreCase(note.getDiskLocationBase()))) {
+          Trouble.getShared().report (primaryStage, 
+              "A Note already exists with the same Title",
+              "Duplicate Found");
           modOK = false;
-        }
-      } 
-      else 
-      // If we changed the title, then check to see if we have another 
-      // Note by the same name
-      if ((! newFileName.equals(fileName))
-          && noteIO.exists(newFileName)
-          && (! newFileName.equalsIgnoreCase(note.getDiskLocationBase()))) {
-        Trouble.getShared().report (primaryStage, 
-            "A Note already exists with the same Title",
-            "Duplicate Found");
-        modOK = false;
-      } else {
-        // Modify newNote on disk
-        note.setLastModDateToday();
-        saveNoteAndDeleteOnRename(note);
-        if (position.isNewNote()) {
-          if (note.hasUniqueKey()) {
-            addNoteToList ();
-          } // end if we have newNote worth adding
         } else {
-          noteList.modify(position);
+          // Modify newNote on disk
+          note.setLastModDateToday();
+          saveNoteAndDeleteOnRename(note);
+          if (position.isNewNote()) {
+            if (note.hasUniqueKey()) {
+              addNoteToList ();
+            } // end if we have newNote worth adding
+          } else {
+            noteList.modify(position);
+          }
+          // noteList.fireTableDataChanged();
+
+          if (editingMasterCollection) {
+            masterCollection.modRecentFile(oldTitle, note.getTitle());
+          }
         }
-        // noteList.fireTableDataChanged();
-        
-        if (editingMasterCollection) {
-          masterCollection.modRecentFile(oldTitle, note.getTitle());
-        }
-      }
-      oldSeq = "";
-    } // end if modified
+        oldSeq = "";
+      } // end if modified
+    }
     
     return modOK;
   } // end modIfChanged method
@@ -2267,6 +2390,7 @@ public class Notenik
         }
 
       } // end for each data field
+      noteDisplayed = true;
     }
     
     editPane.setLastModDate(note.getLastModDate(NoteParms.COMPLETE_FORMAT));
@@ -2464,10 +2588,10 @@ public class Notenik
      Standard way to respond to a Preferences Item Selection on a Mac.
    */
   public void handlePreferences() {
-    displayGeneralPrefs ();
+    displayAppPrefs ();
   }
 
-  public void displayGeneralPrefs () {
+  public void displayAppPrefs () {
     displayAuxiliaryWindow(appPrefs);
   }
   
@@ -2653,7 +2777,6 @@ public class Notenik
       boolean loadUnTagged) {
     
     // closeFile();
-    System.out.println("Notenik.openFile opening " + fileToOpen.toString());
     
     if (masterCollection.hasMasterCollection()
         && fileToOpen.equals(masterCollection.getMasterCollectionFolder())) {
@@ -2671,16 +2794,12 @@ public class Notenik
       noteIO = new NoteIO (fileToOpen, templateParms);
     }    
     
-    System.out.println("Notenik.openFile before initCollection");
     initCollection();
-    System.out.println("Notenik.openFile after  initCollection");
     
     setNoteFile (fileToOpen);
     
     try {
-      System.out.println("Notenik.openFile before load");
       noteIO.load(noteList, loadUnTagged);
-      System.out.println("Notenik.openFile after load");
       if (folderSyncPrefs.getSync()) {
         syncWithFolder();
       }
@@ -2707,6 +2826,8 @@ public class Notenik
     if (index < 0) {
       position = noteList.first(position);
     }
+    fileOpen = true;
+    noteDisplayed = false;
     positionAndDisplay();
   }
   
@@ -2935,6 +3056,8 @@ public class Notenik
     TagsView tagsView = noteList.getTagsModel();
     noteTree = tagsView.getTreeView();
     tagsPrefs.setTagsValueList(noteList.getTagsList());
+    fileOpen = false;
+    noteDisplayed = false;
     // setUnsavedChanges(false);
   }
   
@@ -3200,6 +3323,15 @@ public class Notenik
       }
       publishWindow.saveSource();
     }
+  }
+  
+  public boolean save() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      positionAndDisplay();
+      noteTabs.getSelectionModel().select(DISPLAY_TAB_INDEX);
+    }
+    return modOK;
   }
   
   public boolean saveAll() {
