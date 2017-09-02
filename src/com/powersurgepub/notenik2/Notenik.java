@@ -41,6 +41,7 @@ package com.powersurgepub.notenik2;
   import java.util.*;
 
   import javafx.application.*;
+  import javafx.beans.value.*;
   import javafx.collections.*;
   import javafx.concurrent.*;
   import javafx.event.*;
@@ -140,6 +141,22 @@ public class Notenik
   private             MenuItem            fileSaveMenuItem;
   private             MenuItem            saveAllMenuItem;
   private             MenuItem            fileSaveAsMenuItem;
+  private             MenuItem            fileBackupMenuItem;
+  private             MenuItem            reloadMenuItem;
+  private             MenuItem            reloadTaggedMenuItem;
+  private             MenuItem            publishWindowMenuItem;
+  private             MenuItem            publishNowMenuItem;
+  private             Menu                importMenu;
+  private             MenuItem            importMacAppInfo;
+  private             MenuItem            importNotenikMenuItem;
+  private             MenuItem            importTabDelimitedMenuItem;
+  private             MenuItem            importXMLMenuItem;
+  private             Menu                exportMenu;
+  private             MenuItem            exportNotenikMenuItem;
+  private             MenuItem            exportOPML;
+  private             MenuItem            exportTabDelimitedMenuItem;
+  private             MenuItem            exportTabDelimitedMSMenuItem;
+  private             MenuItem            exportXMLMenuItem;
   
   private             MenuItem            purgeMenuItem;
   
@@ -149,6 +166,8 @@ public class Notenik
   
   private             Menu                noteMenu        = new Menu("Note");
   private             MenuItem            closeNoteMenuItem;
+  private             MenuItem            nextMenuItem;
+  private             MenuItem            priorMenuItem;
   
   private             Menu                editMenu        = new Menu("Edit");
   
@@ -190,10 +209,11 @@ public class Notenik
   private             TableView           noteTable;
   private             TableViewSelectionModel<SortedNote> selModel;
   private             ObservableList<Integer> selected;
-  private             TagsView            tagsView;
-
+  
   private             Tab                 tagsTab;
+  private             BorderPane          treePane;
   private             TreeView            noteTree;
+  private             TagsView            tagsView;
   
   private             TabPane             noteTabs;
   public static final int                   DISPLAY_TAB_INDEX = 0;
@@ -631,6 +651,7 @@ public class Notenik
     
     fxUtils.addSeparator(fileMenu);
     
+    // Save Menu Item
     fileSaveMenuItem = new MenuItem("Save");
     KeyCombination skc
         = new KeyCharacterCombination("S", KeyCombination.SHORTCUT_DOWN);
@@ -638,7 +659,7 @@ public class Notenik
     fileSaveMenuItem.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
-        save();
+        doneEditing();
       }
     });
     fileMenu.getItems().add(fileSaveMenuItem);
@@ -663,6 +684,47 @@ public class Notenik
     });
     fileMenu.getItems().add(fileSaveAsMenuItem);
     
+    // Backup Menu Item
+    fileBackupMenuItem = new MenuItem("Backup...");
+    fileBackupMenuItem.setOnAction(e -> 
+      {
+        if (noteFile != null 
+            && noteFile.exists()
+            && noteList != null
+            && noteList.size() > 0) {
+          promptForBackup();
+        } else {
+          trouble.report(
+              primaryStage, 
+              "Open a Notes folder before attempting a backup", 
+              "Backup Error",
+              AlertType.ERROR);
+        }
+      });
+    fileMenu.getItems().add(fileBackupMenuItem);
+    
+    fxUtils.addSeparator(fileMenu);
+    
+    // Reload Menu Item
+    reloadMenuItem = new MenuItem("Reload");
+    reloadMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        reloadFile();
+      }
+    });
+    fileMenu.getItems().add(reloadMenuItem);
+    
+    // Reload without Untagged Notes
+    reloadTaggedMenuItem = new MenuItem("Reload w/o Untagged");
+    reloadTaggedMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        reloadTaggedOnly();
+      }
+    });
+    fileMenu.getItems().add(reloadTaggedMenuItem);
+    
     fxUtils.addSeparator(fileMenu);
     
     // Purge Menu Item
@@ -670,12 +732,99 @@ public class Notenik
     purgeMenuItem.setOnAction(e -> purgeMenuItemActionPerformed());
     fileMenu.getItems().add(purgeMenuItem);
     
+    fxUtils.addSeparator(fileMenu);
+    
+    // Publish Window Menu Item
+    publishWindowMenuItem = new MenuItem("Publish...");
+    KeyCombination pkc
+        = new KeyCharacterCombination("P", KeyCombination.SHORTCUT_DOWN);
+    publishWindowMenuItem.setAccelerator(pkc);
+    publishWindowMenuItem.setOnAction(e -> displayPublishWindow());
+    fileMenu.getItems().add(publishWindowMenuItem);
+    
+    // Publish Now Menu Item
+    publishNowMenuItem = new MenuItem("Publish Now");
+    publishNowMenuItem.setOnAction(e -> publishWindow.publishNow());
+    fileMenu.getItems().add(publishNowMenuItem);
+    
+    // Import Menu Items
+    importMenu = new Menu("Import");
+    fileMenu.getItems().add(importMenu);
+    
+    importMacAppInfo = new MenuItem("Mac App Info...");
+    importMacAppInfo.setOnAction(e -> importMacAppInfo());
+    importMenu.getItems().add(importMacAppInfo);
+    
+    importNotenikMenuItem = new MenuItem("Notenik...");
+    importNotenikMenuItem.setOnAction(e -> importFile());
+    importMenu.getItems().add(importNotenikMenuItem);
+    
+    importTabDelimitedMenuItem = new MenuItem("Tab-Delimited...");
+    importTabDelimitedMenuItem.setOnAction(e -> importTabDelimited());
+    importMenu.getItems().add(importTabDelimitedMenuItem);
+    
+    importXMLMenuItem = new MenuItem("XML...");
+    importXMLMenuItem.setOnAction(e -> importXMLFile());
+    importMenu.getItems().add(importXMLMenuItem);
+    
+    // Export Menu Items
+    exportMenu = new Menu("Export");
+    fileMenu.getItems().add(exportMenu);
+    
+    exportNotenikMenuItem = new MenuItem("Notenik...");
+    exportNotenikMenuItem.setOnAction
+        (e -> generalExport(NoteExport.NOTENIK_EXPORT));
+    exportMenu.getItems().add(exportNotenikMenuItem);
+    
+    exportOPML = new MenuItem("OPML...");
+    exportOPML.setOnAction(e -> generalExport(NoteExport.OPML_EXPORT));
+    exportMenu.getItems().add(exportOPML);
+    
+    exportTabDelimitedMenuItem = new MenuItem("Tab-Delimited...");
+    exportTabDelimitedMenuItem.setOnAction
+        (e -> generalExport(NoteExport.TABDELIM_EXPORT));
+    exportMenu.getItems().add(exportTabDelimitedMenuItem);
+    
+    exportTabDelimitedMSMenuItem = new MenuItem("Tab-Delimited for MS Links");
+    exportTabDelimitedMSMenuItem.setOnAction
+        (e -> generalExport(NoteExport.TABDELIM_EXPORT_MS_LINKS));
+    exportMenu.getItems().add(exportTabDelimitedMSMenuItem);
+    
+    exportXMLMenuItem = new MenuItem("XML...");
+    exportXMLMenuItem.setOnAction
+        (e -> generalExport(NoteExport.XML_EXPORT));
+    exportMenu.getItems().add(exportXMLMenuItem);
+    
+    //
+    // Let's build out the Note Menu
+    //
+    
+    // Next Note Menu Item
+    nextMenuItem = new MenuItem("Go to Next Note");
+    KeyCombination nextkc
+        = new KeyCharacterCombination("]", KeyCombination.SHORTCUT_DOWN);
+    nextMenuItem.setAccelerator(nextkc);
+    nextMenuItem.setOnAction (e -> nextNote());
+    noteMenu.getItems().add(nextMenuItem);
+    
+    // Prior Note Menu Item
+    priorMenuItem = new MenuItem("Go to Previous Note");
+    KeyCombination priorkc
+        = new KeyCharacterCombination("[", KeyCombination.SHORTCUT_DOWN);
+    priorMenuItem.setAccelerator(priorkc);
+    priorMenuItem.setOnAction (e -> priorNote());
+    noteMenu.getItems().add(priorMenuItem);
+    
+    // Close Note Menu Item
     closeNoteMenuItem = new MenuItem("Close Note");
     KeyCombination kkc
         = new KeyCharacterCombination("K", KeyCombination.SHORTCUT_DOWN);
     closeNoteMenuItem.setAccelerator(kkc);
     closeNoteMenuItem.setOnAction(e -> closeNoteMenuItemActionPerformed());
     noteMenu.getItems().add(closeNoteMenuItem);
+    
+
+    
     
   }
   
@@ -700,6 +849,7 @@ public class Notenik
     
     okButton = new Button("OK");
     okButton.setTooltip(new Tooltip("Complete your entries for this note"));
+    okButton.setOnAction( e -> doneEditing() );
     toolBar.getItems().add(okButton);
     
     newButton = new Button("+");
@@ -716,10 +866,12 @@ public class Notenik
         
     priorButton = new Button("<");
     priorButton.setTooltip(new Tooltip("Go to the prior note"));
+    priorButton.setOnAction(e -> priorNote());
     toolBar.getItems().add(priorButton);
         
     nextButton = new Button(">");
     nextButton.setTooltip(new Tooltip("Go to the next note"));
+    nextButton.setOnAction(e -> nextNote());
     toolBar.getItems().add(nextButton);
         
     lastButton = new Button(">>");
@@ -728,14 +880,18 @@ public class Notenik
         
     launchButton = new Button("Launch");
     launchButton.setTooltip(new Tooltip("Open this Link in your Web Browser"));
+    launchButton.setOnAction( e -> launchButtonClicked() );
     toolBar.getItems().add(launchButton);
         
     findText = new TextField("");
     findText.setTooltip(new Tooltip("Enter some text you'd like to find"));
+    findText.textProperty().addListener(this::findTextChanged);
+    findText.setOnAction(e -> findTextAction());
     toolBar.getItems().add(findText);
         
     findButton = new Button("Find");
     findButton.setTooltip(new Tooltip("Find the text you entered"));
+    findButton.setOnAction(e -> findNote());
     toolBar.getItems().add(findButton);
     
     primaryLayout.getChildren().add(toolBar);
@@ -777,12 +933,17 @@ public class Notenik
     selected = selModel.getSelectedIndices();
     selected.addListener((ListChangeListener.Change<? extends Integer> change) ->
       {
-        int index = selModel.getSelectedIndex();
-        selectTableRow();
+        tableRowSelected();
       });
     listPane = new BorderPane();
     listPane.setCenter(noteTable);
     listTab.setContent(listPane);
+    
+    treePane = new BorderPane();
+    noteTree = noteList.getTreeView();
+    treePane.setCenter(noteTree);
+    tagsTab.setContent(treePane);
+    
   } // end method buildCollectionTabs
   
   /**
@@ -1282,19 +1443,19 @@ public class Notenik
     DirectoryChooser chooser = new DirectoryChooser();
 
 		if (modOK) {
-      chooser.setTitle ("Make Backup of Notenik Folder");
+      chooser.setTitle ("Pick a Backups Folder");
       FileName noteFileName = new FileName (home.getUserHome());
       if (noteFile != null && noteFile.exists()) {
         noteFileName = new FileName (noteFile);
       }
-      File backupFolder = getBackupFolder();
-      chooser.setInitialDirectory (backupFolder);
-      File selectedFile = chooser.showDialog (primaryStage);
-      if (selectedFile != null) {
-        File backupFile = selectedFile;
-        backedUp = backup (backupFile);
+      File initialFolder = getBackupFolder();
+      chooser.setInitialDirectory (initialFolder);
+      File selectedFolder = chooser.showDialog (primaryStage);
+      if (selectedFolder != null) {
+        File backupFolder = selectedFolder;
+        backedUp = backup (backupFolder);
         FileSpec fileSpec = masterCollection.getFileSpec(0);
-        fileSpec.setBackupFolder(backupFile);
+        fileSpec.setBackupFolder(backupFolder);
         if (backedUp) {
           Alert alert = new Alert(AlertType.INFORMATION);
           alert.setTitle("Backup Results");
@@ -1365,25 +1526,43 @@ public class Notenik
            based on his past choices, or on the application defaults.
   */
   private File getBackupFolder() {
-    File backupFolder = home.getUserHome();
+    
+    File userHome = home.getUserHome();
+    File userDocs = home.getUserDocs();   
+    File embeddedBackupFolder = null;    
+    String lastBackupFolderStr = "";
+    File lastBackupFolder = null;
+    
     if (noteFile != null && noteFile.exists()) {    
       FileSpec fileSpec = masterCollection.getFileSpec(0);
-      String backupFolderStr = fileSpec.getBackupFolder();
-      File defaultBackupFolder = new File (fileSpec.getFolder(), "backups");
-      if (backupFolderStr == null
-          || backupFolderStr.length() < 2) {
-        backupFolder = defaultBackupFolder;
-      } else {
-        backupFolder = new File (backupFolderStr);
-        if (backupFolder.exists()
-            && backupFolder.canWrite()) {
-          // leave as-is
-        } else {
-          backupFolder = defaultBackupFolder;
-        }
+      embeddedBackupFolder = new File (fileSpec.getFolder(), "backups");
+      lastBackupFolderStr = fileSpec.getBackupFolder();
+      if (lastBackupFolderStr != null
+          && lastBackupFolderStr.length() > 1) {
+        lastBackupFolder = new File(lastBackupFolderStr);
       }
     }
+    File backupFolder;
+    if (goodBackupFolder(lastBackupFolder)) {
+      backupFolder = lastBackupFolder;
+    }
+    else
+    if (goodBackupFolder(embeddedBackupFolder)) {
+      backupFolder = embeddedBackupFolder;
+    } else 
+    if (goodBackupFolder(userHome)) {
+      backupFolder = userHome;
+    } else {
+      backupFolder = userDocs;
+    }
     return backupFolder;
+  }
+
+  private boolean goodBackupFolder(File backupFolder) {
+    return (backupFolder != null
+        && backupFolder.exists() 
+        && backupFolder.canWrite()
+        && backupFolder.isDirectory());
   }
   
  /**
@@ -1936,6 +2115,28 @@ public class Notenik
     return itemsChanged;
     
   } // end replaceAll method
+  
+  /**
+   The user changed the value of the search field in the tool bar. 
+  
+   @param prop      The Observable value
+   @param oldValue  The prior value
+   @param newValue  The new value
+  */
+  private void findTextChanged(ObservableValue<? extends String> prop, 
+	                    String oldValue, 
+	                    String newValue) {
+    if (! findText.getText().equals (lastTextFound)) {
+      noFindInProgress();
+    }
+	}
+  
+  /**
+   The user hit the Return / Enter key while in the tool bar search field. 
+  */
+  private void findTextAction() {
+    findNote();
+  }
 
   /**
     Find the next URL item containing the search string, or position the cursor
@@ -2262,12 +2463,16 @@ public class Notenik
   /**
    Respond when the user clicks on a row in the Note list.
    */
-  private void selectTableRow () {
+  private void tableRowSelected () {
     int selectedRow = noteTable.getSelectionModel().getSelectedIndex();
-    if (selectedRow >= 0 && selectedRow < noteList.size()) {
+    SortedNote selectedNote = (SortedNote)noteTable.getSelectionModel().getSelectedItem();
+    if (selectedRow >= 0 
+        && selectedRow < noteList.size() 
+        && selectedNote != null) {
       boolean modOK = modIfChanged();
       if (modOK) {
-        position = noteList.positionUsingListIndex (selectedRow);
+        position = noteList.positionUsingListIndexAndNote 
+          (selectedRow, selectedNote.getNote());
         positionAndDisplay();
       }
     }
@@ -2732,6 +2937,14 @@ public class Notenik
         noteSortParm.setParm(NoteSortParm.SORT_BY_SEQ_AND_TITLE);
         firstNote();
       }
+    }
+  }
+  
+  private void launchButtonClicked() {
+    if (editingMasterCollection) {
+      openFileFromCurrentNote();
+    } else {
+      openURL (editPane.getLink());
     }
   }
   
@@ -3323,15 +3536,6 @@ public class Notenik
       }
       publishWindow.saveSource();
     }
-  }
-  
-  public boolean save() {
-    boolean modOK = modIfChanged();
-    if (modOK) {
-      positionAndDisplay();
-      noteTabs.getSelectionModel().select(DISPLAY_TAB_INDEX);
-    }
-    return modOK;
   }
   
   public boolean saveAll() {
