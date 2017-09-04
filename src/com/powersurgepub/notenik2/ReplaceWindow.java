@@ -16,49 +16,13 @@
 
 package com.powersurgepub.notenik2;
 
-	import com.powersurgepub.psutils2.basic.*;
-	import com.powersurgepub.psutils2.clubplanner.*;
-	import com.powersurgepub.psutils2.elements.*;
-	import com.powersurgepub.psutils2.env.*;
-	import com.powersurgepub.psutils2.excel.*;
-	import com.powersurgepub.psutils2.files.*;
-	import com.powersurgepub.psutils2.index.*;
-	import com.powersurgepub.psutils2.links.*;
-	import com.powersurgepub.psutils2.list.*;
-	import com.powersurgepub.psutils2.logging.*;
-	import com.powersurgepub.psutils2.markup.*;
-	import com.powersurgepub.psutils2.mkdown.*;
-	import com.powersurgepub.psutils2.notenik.*;
-	import com.powersurgepub.psutils2.prefs.*;
-	import com.powersurgepub.psutils2.publish.*;
-	import com.powersurgepub.psutils2.records.*;
-	import com.powersurgepub.psutils2.script.*;
-	import com.powersurgepub.psutils2.strings.*;
-	import com.powersurgepub.psutils2.strtext.*;
-	import com.powersurgepub.psutils2.tabdelim.*;
-	import com.powersurgepub.psutils2.tags.*;
-	import com.powersurgepub.psutils2.textio.*;
-	import com.powersurgepub.psutils2.textmerge.*;
-	import com.powersurgepub.psutils2.txbio.*;
-	import com.powersurgepub.psutils2.txbmodel.*;
-	import com.powersurgepub.psutils2.txmin.*;
 	import com.powersurgepub.psutils2.ui.*;
-	import com.powersurgepub.psutils2.values.*;
-	import com.powersurgepub.psutils2.widgets.*;
 
- 	import javafx.application.*;
  	import javafx.beans.value.*;
- 	import javafx.collections.*;
  	import javafx.event.*;
- 	import javafx.geometry.*;
  	import javafx.scene.*;
  	import javafx.scene.control.*;
- 	import javafx.scene.control.Alert.*;
-	import javafx.scene.image.*;
-	import javafx.scene.input.*;
  	import javafx.scene.layout.*;
-	import javafx.scene.text.*;
-	import javafx.scene.web.*;
  	import javafx.stage.*;
 
 /**
@@ -149,6 +113,7 @@ public class ReplaceWindow
 		rowCount++;
 
 		titleCheckBox = new CheckBox("Title");
+    titleCheckBox.setSelected(true);
     titleCheckBox.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
@@ -184,6 +149,7 @@ public class ReplaceWindow
 		rowCount++;
 
 		linkCheckBox = new CheckBox("Link");
+    linkCheckBox.setSelected(true);
     linkCheckBox.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
@@ -208,6 +174,7 @@ public class ReplaceWindow
 		rowCount++;
 
 		tagsCheckBox = new CheckBox("Tags");
+    tagsCheckBox.setSelected(true);
     tagsCheckBox.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
@@ -232,6 +199,7 @@ public class ReplaceWindow
 		rowCount++;
 
 		bodyCheckBox = new CheckBox("Body");
+    bodyCheckBox.setSelected(true);
     bodyCheckBox.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
