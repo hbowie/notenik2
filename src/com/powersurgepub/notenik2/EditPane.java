@@ -77,8 +77,7 @@ public class EditPane {
   }
   
   public void addWidgets(
-      NoteList noteList, 
-      NoteIO noteIO, 
+      NoteCollectionModel model, 
       LinkTweakerInterface linkTweaker,
       DateWidgetOwner dateWidgetOwner,
       Stage editStage) {
@@ -86,9 +85,9 @@ public class EditPane {
     minHeight = 0;
     prefHeight = 0;
     WidgetWithLabel widgetWithLabel = new WidgetWithLabel();
-    for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
-      DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
-      widgetWithLabel = noteIO.getNoteParms().getWidgetWithLabel(fieldDef, editPane, rowCount); 
+    for (int i = 0; i < model.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = model.getRecDef().getDef(i);
+      widgetWithLabel = model.getNoteParms().getWidgetWithLabel(fieldDef, editPane, rowCount); 
       double widgetMinHeight = widgetWithLabel.getWidget().getMinHeight();
       double widgetPrefHeight = widgetWithLabel.getWidget().getPrefHeight();
       minHeight = minHeight + widgetMinHeight + HEIGHT_SEP;
@@ -97,11 +96,11 @@ public class EditPane {
         // Special processing for Tags
         case (DataFieldDefinition.TAGS_TYPE):
           tagsTextSelector = (TextSelector)widgetWithLabel.getWidget();
-          tagsTextSelector.setValueList(noteList.getTagsList());
+          tagsTextSelector.setValueList(model.getTagsList());
           tagsTextSelector.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent evt) {
-              // ???
+              System.out.println("EditPane.addWidgets tags action event");
             }
           });
           break;
@@ -138,7 +137,7 @@ public class EditPane {
     }
     
     if (tagsTextSelector != null) {
-      tagsTextSelector.setValueList(noteList.getTagsList());
+      tagsTextSelector.setValueList(model.getTagsList());
     }
     
     lastModDateLabel = new Label();

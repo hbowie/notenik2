@@ -96,7 +96,7 @@ public class NoteExport {
   private     StringBuffer        textIn = new StringBuffer();
   private     boolean             defForTags = false;
   private     boolean             defForModDate = false;
-  private     NoteList            notes;
+  private     NoteCollectionModel model;
   // private     Note             note = new Note();
   private     StringBuffer        tags = new StringBuffer();
   private     int                 tagsLastLevel = -1;
@@ -138,7 +138,7 @@ public class NoteExport {
    @param exportFile The output file or folder (depending on export type).
    @param noteFile   The folder containing the current collection of notes. 
    @param recDef     The record definition for the collection. 
-   @param noteList   The list of notes to be exported. 
+   @param model      The list of notes to be exported. 
    @param exportType The type of export: 0 = Notenik, 1 = tab-delimited, 2 = XML.
    @param selectTagsStr If non null and non-blank, then only notes with this tag
                         will be exported. 
@@ -152,7 +152,7 @@ public class NoteExport {
       File exportFile,
       File noteFile,
       RecordDefinition recDef,
-      NoteList noteList,
+      NoteCollectionModel model,
       int exportType,
       String selectTagsStr,
       String suppressTagsStr) {
@@ -223,8 +223,8 @@ public class NoteExport {
 
     // Write out the selected notes
     if (ok) {
-      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-        workNote = noteList.get (workIndex);
+      for (int workIndex = 0; workIndex < model.size(); workIndex++) {
+        workNote = model.get (workIndex);
         if (workNote != null) {
           boolean tagSelected = workNote.getTags().anyTagFound(selectTags);
           if (tagSelected) {
@@ -315,15 +315,15 @@ public class NoteExport {
    Export all tags and notes to an OPML outline file. 
   
    @param exportFile The file to contain the export. 
-   @param noteList   The list of notes to be exported. 
+   @param model   The list of notes to be exported. 
   
    @return Number of outline nodes exported. 
   */
   public int OPMLExport(
       File exportFile,
-      NoteList noteList) {
+      NoteCollectionModel model) {
     
-    TagsView tagsView = noteList.getTagsModel();
+    TagsView tagsView = model.getTagsModel();
     Counter exported = new Counter();
     MarkupWriter writer = new MarkupWriter(exportFile, MarkupWriter.OPML_FORMAT);
     writer.openForOutput();
@@ -388,15 +388,15 @@ public class NoteExport {
    Export all tags and notes to an HTML Tags outline file. 
   
    @param exportFile The file to contain the export. 
-   @param noteList   The list of notes to be exported. 
+   @param model   The list of notes to be exported. 
   
    @return Number of outline nodes exported. 
   */
   public int HTMLTagsOutlineExport(
       File exportFile,
-      NoteList noteList) {
+      NoteCollectionModel model) {
     
-    TagsView tagsView = noteList.getTagsModel();
+    TagsView tagsView = model.getTagsModel();
     Counter exported = new Counter();
     MarkupWriter writer = new MarkupWriter(exportFile, MarkupWriter.HTML_FORMAT);
     writer.openForOutput();
@@ -460,21 +460,21 @@ public class NoteExport {
   /**
    Save an entire Notes collection to a specified output file.
    */
-  public boolean exportToURLUnion (File file, NoteList notes) {
+  public boolean exportToURLUnion (File file, NoteCollectionModel model) {
 
     markupWriter = new MarkupWriter (file, MarkupWriter.HTML_FORMAT);
-    this.notes = notes;
+    this.model = model;
     okSoFar = markupWriter.openForOutput();
     level = 0;
-    startFile(notes.getTitle(), false, false);
+    startFile(model.getTitle(), false, false);
     writeStartTag (TextType.DEFINITION_LIST);
 
 
     // Now write the collection
     if (okSoFar) {
       Note note;
-      for (int i = 0; i < notes.size(); i++) {
-        note = notes.get (i);
+      for (int i = 0; i < model.size(); i++) {
+        note = model.get (i);
         exportNextNoteToURLUnion (note);
       } // end for loop
     } // end if open okSoFar
@@ -530,13 +530,13 @@ public class NoteExport {
    @return True if everything went ok; false if an I/O error. 
   */
   public boolean exportToTabDelimited (
-      NoteList notes, 
+      NoteCollectionModel model, 
       File urlsTab, 
       boolean favoritesOnly, 
       String favoritesTagsString) {
     
-    this.notes = notes;
-    TagsView tagsView = notes.getTagsModel();
+    this.model = model;
+    TagsView tagsView = model.getTagsModel();
     boolean ok = true;
     TabDelimFile tdf = new TabDelimFile (urlsTab);
     RecordDefinition recDef = new RecordDefinition();
@@ -562,8 +562,8 @@ public class NoteExport {
     if (ok) {
       DataRecord rec;
       Note note;
-      for (int i = 0; i < notes.size(); i++) {
-        note = notes.get(i);
+      for (int i = 0; i < model.size(); i++) {
+        note = model.get(i);
         if (note != null) {
           boolean favoritesFound = false;
           StringBuilder favoritesCategory = new StringBuilder();
@@ -661,7 +661,7 @@ public class NoteExport {
            false if i/o errors writing the file, or if no favorites were found.
    */
   public boolean publishFavorites
-      (File publishTo, NoteList notes, FavoritesPrefs favoritesPrefs) {
+      (File publishTo, NoteCollectionModel model, FavoritesPrefs favoritesPrefs) {
 
     Logger.getShared().recordEvent(LogEvent.NORMAL, 
         "Publishing Favorites to " + publishTo.toString(), false);
@@ -671,8 +671,8 @@ public class NoteExport {
     String favoritesTags = favoritesPrefs.getFavoritesTags();
     favoritesHome = favoritesPrefs.getFavoritesHome();
               
-    this.notes = notes;
-    TagsView tagsView = notes.getTagsModel();
+    this.model = model;
+    TagsView tagsView = model.getTagsModel();
     
     lineMax = favoritesRows;
     switch (favoritesColumns) {
@@ -831,7 +831,7 @@ public class NoteExport {
    */
   private void startFavorites (String suffix) {
     markupWriter.openForOutput();
-    startFile (notes.getTitle() + " | " + suffix, true, false);
+    startFile (model.getTitle() + " | " + suffix, true, false);
 
     /* Let's kill the NavBar -- Doesn't make sense when used for reports
     
@@ -997,14 +997,14 @@ public class NoteExport {
    as folders.
 
    @param file The output file to be created.
-   @param notes The URL Collection to be written.
+   @param model The URL Collection to be written.
    @return True if everything went ok.
    */
   public boolean publishOutline
-      (File file, NoteList notes) {
+      (File file, NoteCollectionModel model) {
 
-    this.notes = notes;
-    TagsView tagsView = notes.getTagsModel();
+    this.model = model;
+    TagsView tagsView = model.getTagsModel();
     markupWriter = new MarkupWriter
         (file, MarkupWriter.HTML_FORMAT);
     startOutline();
@@ -1083,7 +1083,7 @@ public class NoteExport {
    */
   private void startOutline () {
     markupWriter.openForOutput();
-    startFile (notes.getTitle() + " | Outline", true, true);
+    startFile (model.getTitle() + " | Outline", true, true);
 
     startDiv ("navbar navbar-inverse navbar-fixed-top");
     startDiv ("navbar-inner");
@@ -1113,7 +1113,7 @@ public class NoteExport {
 
     FileName outlineFile = new FileName (markupWriter.getDestination());
     beginLink(outlineFile.getFileName(), "brand");
-    writeContent(notes.getTitle() + " | Outline");
+    writeContent(model.getTitle() + " | Outline");
     endLink();
     startDiv ("nav-collapse collapse");
     writeStartTag  (TextType.UNORDERED_LIST, "nav");
@@ -1140,14 +1140,14 @@ public class NoteExport {
    Netscape bookmarks format.
 
    @param file The output file to be written.
-   @param notes The collection of URLs containing the favorites.
+   @param model The collection of URLs containing the favorites.
    @return True if everything went ok, false if i/o errors writing the file.
    */
   public boolean publishNetscape
-      (File file, NoteList notes) {
+      (File file, NoteCollectionModel model) {
 
-    this.notes = notes;
-    TagsView tagsView = notes.getTagsModel();
+    this.model = model;
+    TagsView tagsView = model.getTagsModel();
     markupWriter = new MarkupWriter
         (file, MarkupWriter.NETSCAPE_BOOKMARKS_FORMAT);
     markupWriter.setIndentPerLevel(4);
@@ -1231,7 +1231,7 @@ public class NoteExport {
 
     markupWriter = new MarkupWriter (indexFile, MarkupWriter.HTML_FORMAT);
     okSoFar = markupWriter.openForOutput();
-    startFile(notes.getTitle() + " | " + "Index", false, false);
+    startFile(model.getTitle() + " | " + "Index", false, false);
     writeStartTag (TextType.PARAGRAPH);
     writeContent ("This folder <cite>("
         + indexFile.getParent()

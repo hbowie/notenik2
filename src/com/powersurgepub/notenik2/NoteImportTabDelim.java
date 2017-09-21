@@ -33,7 +33,7 @@ package com.powersurgepub.notenik2;
 public class NoteImportTabDelim {
   
   private     File                importFile;
-  private     NoteList            noteList;
+  private     NoteCollectionModel model;
   
   private     Notenik             notenik;
   
@@ -73,17 +73,17 @@ public class NoteImportTabDelim {
   
   public int parse (
       File importFile,
-      NoteList noteList) {
+      NoteCollectionModel model) {
     
     this.importFile = importFile;
-    this.noteList = noteList;
+    this.model = model;
     ok = true;
     imported = 0;
     DataSource importer;
     importer = new TabDelimFile(importFile);
     importer.setLog (Logger.getShared());
     // setActionMsg ("Importing " + importName + " ... ");
-    int before = noteList.size();
+    int before = model.size();
     if (ok) {
       if (! this.importFile.canRead()) {
         ok = false;
@@ -106,13 +106,13 @@ public class NoteImportTabDelim {
         while (! importer.isAtEnd()) {
           DataRecord dataRec = importer.nextRecordIn();
           if (dataRec != null) {
-            Note note = new Note(noteList.getRecDef());
+            Note note = new Note(model.getRecDef());
             for (int i = 0; i < dataRec.getNumberOfFields(); i++) {
               DataField field = dataRec.getField(i);
               note.setField(field.getCommonFormOfName(), field.getData());
             }
             if (note.hasTitle()) {
-              noteList.add(note);
+              model.add(note);
             }
           }
         }

@@ -35,7 +35,7 @@ public class NoteImportXML
     extends DefaultHandler {
   
   private     File                importFile;
-  private     NoteList            noteList;
+  private     NoteCollectionModel model;
   
   private     Notenik             notenik;
   
@@ -75,12 +75,21 @@ public class NoteImportXML
     this.log = log;
   }
   
+  /**
+   Parse the supplied XML file, and add notes found there to the model. 
+  
+   @param importFile An XML file to be imported. 
+  
+   @param model The model to be populated. 
+  
+   @return The number of notes imported.
+  */
   public int parse (
       File importFile,
-      NoteList noteList) {
+      NoteCollectionModel model) {
     
     this.importFile = importFile;
-    this.noteList = noteList;
+    this.model = model;
     ok = true;
     imported = 0;
     fieldNames = new ArrayList<String>();
@@ -181,7 +190,7 @@ public class NoteImportXML
         && localName.equalsIgnoreCase(NoteExport.NOTE)) {
       noteStarted = true;
       elementLevel = 0;
-      workNote = new Note(noteList.getRecDef());
+      workNote = new Note(model.getRecDef());
       storeField (elementLevel, fieldName, str);
     }
     else
@@ -249,8 +258,7 @@ public class NoteImportXML
     else
     if (notenikStarted 
         && localName.equalsIgnoreCase(NoteExport.NOTE)) {
-      noteList.add(workNote);
-      notenik.saveNote(workNote);
+      model.add(workNote);
       noteStarted = false;
       elementLevel = 0;
     }

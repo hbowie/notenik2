@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 - 2015 Herb Bowie
+ * Copyright 2015 - 2017 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,40 +16,11 @@
 
 package com.powersurgepub.notenik2;
 
-	import com.powersurgepub.psutils2.basic.*;
-	import com.powersurgepub.psutils2.clubplanner.*;
-	import com.powersurgepub.psutils2.elements.*;
-	import com.powersurgepub.psutils2.env.*;
-	import com.powersurgepub.psutils2.excel.*;
 	import com.powersurgepub.psutils2.files.*;
-	import com.powersurgepub.psutils2.index.*;
-	import com.powersurgepub.psutils2.links.*;
-	import com.powersurgepub.psutils2.list.*;
-	import com.powersurgepub.psutils2.logging.*;
-	import com.powersurgepub.psutils2.markup.*;
-	import com.powersurgepub.psutils2.mkdown.*;
-	import com.powersurgepub.psutils2.notenik.*;
-	import com.powersurgepub.psutils2.prefs.*;
-	import com.powersurgepub.psutils2.publish.*;
-	import com.powersurgepub.psutils2.records.*;
-	import com.powersurgepub.psutils2.script.*;
-	import com.powersurgepub.psutils2.strings.*;
-	import com.powersurgepub.psutils2.strtext.*;
-	import com.powersurgepub.psutils2.tabdelim.*;
-	import com.powersurgepub.psutils2.tags.*;
-	import com.powersurgepub.psutils2.textio.*;
-	import com.powersurgepub.psutils2.textmerge.*;
-	import com.powersurgepub.psutils2.txbio.*;
-	import com.powersurgepub.psutils2.txbmodel.*;
-	import com.powersurgepub.psutils2.txmin.*;
 	import com.powersurgepub.psutils2.ui.*;
-	import com.powersurgepub.psutils2.values.*;
-	import com.powersurgepub.psutils2.widgets.*;
 
   import java.io.*;
 
- 	import javafx.application.*;
- 	import javafx.beans.value.*;
  	import javafx.collections.*;
  	import javafx.event.*;
  	import javafx.geometry.*;
@@ -144,7 +115,8 @@ public class FileInfoWindow
 
 		rowCount++;
 
-		filesTable = new TableView();
+    files.createTable();
+		filesTable = files.getTable();
 		fileInfoPane.add(filesTable, 0, rowCount, 1, 1);
 		filesTable.setMaxWidth(Double.MAX_VALUE);
 		GridPane.setHgrow(filesTable, Priority.ALWAYS);
@@ -164,7 +136,8 @@ public class FileInfoWindow
 		  } // end handle method
 		}); // end event handler
 		fileInfoPane.add(selectFileButton, 0, rowCount, 1, 1);
-
+    GridPane.setHalignment(selectFileButton, HPos.CENTER);
+    
 		rowCount++;
 
 		browseForFileButton = new Button("Browse for File…");
@@ -183,6 +156,7 @@ public class FileInfoWindow
 		  } // end handle method
 		}); // end event handler
 		fileInfoPane.add(browseForFileButton, 0, rowCount, 1, 1);
+    GridPane.setHalignment(browseForFileButton, HPos.CENTER);
 
 		rowCount++;
     
@@ -192,12 +166,22 @@ public class FileInfoWindow
     fileInfoStage.setMinHeight(240);
   } // end method buildUI
 
+  /**
+   Pass the file to be displayed. 
+  
+   @param fileStr The string identifying the file. 
+  */
   public void setFile(String fileStr) {
 
+    System.out.println("FileInfoWindow.setFile");
+    System.out.println("  - File String = '" + fileStr + "'");
     folder = null;
     file = null;
-    files = new FileTable();
+    // files = new FileTable();
+    // files.createTable();
+		// filesTable = files.getTable();
     FileName fileName = new FileName(fileStr);
+    System.out.println("  - File Name get Path = " + fileName.getPath());
     folderText.setText(fileName.getPath());
     folder = new File (fileName.getPath());
     boolean folderExists = folder.exists();
@@ -206,10 +190,12 @@ public class FileInfoWindow
     } else {
       folderExistsLabel.setText("Folder does not exist.");
     }
+    System.out.println("  - File Name get File Name = " + fileName.getFileName());
     fileText.setText(fileName.getFileName());
     fileExistsLabel.setText("File does not exist");
     if (folderExists) {
       file = fileName.getFile();
+      System.out.println("  - File = " + String.valueOf(file));
       if (file.exists()) {
         fileExistsLabel.setText("File exists.");
       }
@@ -236,8 +222,8 @@ public class FileInfoWindow
         } // end for each dir entry
       } // end if we have enough of a file name to match
     } // end if folder exists
-    filesTable = files.getTable();
-    filesTable.getSelectionModel().clearSelection();
+    // filesTable = files.getTable();
+    // filesTable.getSelectionModel().clearSelection();
   } // end method setFile
   
   public String getTitle() {
