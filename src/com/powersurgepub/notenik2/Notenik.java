@@ -176,6 +176,13 @@ public class Notenik
   private             MenuItem              purgeMenuItem;
   
   private             Menu                collectionMenu  = new Menu("Collection");
+  private             MenuItem              collectionPrefsMenuItem;
+  private             MenuItem              findMenuItem;
+  private             MenuItem              replaceMenuItem;
+  private             MenuItem              addReplaceMenuItem;
+  private             MenuItem              flattenTagsMenuItem;
+  private             MenuItem              lowerCaseTagsMenuItem;
+  private             MenuItem              validateURLsMenuItem;
   
   private             Menu                sortMenu        = new Menu("Sort");
   
@@ -197,6 +204,8 @@ public class Notenik
   private             Menu                editMenu        = new Menu("Edit");
   
   private             Menu                toolsMenu       = new Menu("Tools");
+  private             MenuItem              toolsOptionsMenuItem;
+  private             MenuItem              toolsLinkTweakerMenuItem;
   
   private             Menu                reportsMenu     = new Menu("Reports");
   
@@ -799,6 +808,58 @@ public class Notenik
     exportMenu.getItems().add(exportXMLMenuItem);
     
     //
+    // Let's build out the Collection Menu
+    //
+    
+    // Collection Prefs Menu Item
+    collectionPrefsMenuItem = new MenuItem("Collection Preferences");
+    collectionMenu.setOnAction(e -> displayAuxiliaryWindow(collectionPrefs));
+    collectionMenu.getItems().add(collectionPrefsMenuItem);
+    
+    fxUtils.addSeparator(collectionMenu);
+    
+    // Find Menu Item
+    findMenuItem = new MenuItem("Find");
+    KeyCombination fkc
+        = new KeyCharacterCombination("F", KeyCombination.SHORTCUT_DOWN);
+    findMenuItem.setAccelerator(fkc);
+    findMenuItem.setOnAction(e -> findNote());
+    collectionMenu.getItems().add(findMenuItem);
+    
+    // Replace Menu Item
+    replaceMenuItem = new MenuItem("Replace...");
+    KeyCombination rkc
+        = new KeyCharacterCombination("R", KeyCombination.SHORTCUT_DOWN);
+    replaceMenuItem.setAccelerator(rkc);
+    replaceMenuItem.setOnAction(e -> startReplace());
+    collectionMenu.getItems().add(replaceMenuItem);
+    
+    fxUtils.addSeparator(collectionMenu);
+    
+    // Add/Replace Tag Menu Item
+    addReplaceMenuItem = new MenuItem("Add/Replace Tag...");
+    addReplaceMenuItem.setOnAction(e -> checkTags());
+    collectionMenu.getItems().add(addReplaceMenuItem);
+    
+    // Flatten Tag Levels Menu Item
+    flattenTagsMenuItem = new MenuItem("Flatten Tag Levels");
+    flattenTagsMenuItem.setOnAction(e -> flattenTags());
+    collectionMenu.getItems().add(flattenTagsMenuItem);
+    
+    // Lower Case Tags Menu Item
+    lowerCaseTagsMenuItem = new MenuItem("Lower Case Tags");
+    lowerCaseTagsMenuItem.setOnAction(e -> lowerCaseTags());
+    collectionMenu.getItems().add(lowerCaseTagsMenuItem);
+    
+    fxUtils.addSeparator(collectionMenu);
+    
+    // Validate Links Menu Item
+    validateURLsMenuItem = new MenuItem("Validate Links...");
+    validateURLsMenuItem.setOnAction(e -> validateURLs());
+    collectionMenu.getItems().add(validateURLsMenuItem);
+    
+    
+    //
     // Let's build out the Note Menu
     //
     
@@ -816,7 +877,6 @@ public class Notenik
     noteMenu.getItems().add(deleteNoteMenuItem);
     
     fxUtils.addSeparator(noteMenu);
-    
     
     // Next Note Menu Item
     nextMenuItem = new MenuItem("Go to Next Note");
@@ -889,6 +949,26 @@ public class Notenik
     htmlToFileMenuItem = new MenuItem("Save to File");
     htmlToFileMenuItem.setOnAction(e -> genHTMLtoFile());
     htmlMenu.getItems().add(htmlToFileMenuItem);
+    
+    // 
+    // Build the Tools Menu
+    //
+    
+    // Build the Options Menu Item
+    toolsOptionsMenuItem = new MenuItem("Options...");
+    KeyCombination commakc
+        = new KeyCharacterCombination(",", KeyCombination.SHORTCUT_DOWN);
+    toolsOptionsMenuItem.setAccelerator(commakc);
+    toolsOptionsMenuItem.setOnAction(e -> handlePreferences());
+    toolsMenu.getItems().add(toolsOptionsMenuItem);
+    
+    // Build the Link Tweaker Menu Item
+    toolsLinkTweakerMenuItem = new MenuItem("Link Tweaker...");
+    KeyCombination lkc
+        = new KeyCharacterCombination("L", KeyCombination.SHORTCUT_DOWN);
+    toolsLinkTweakerMenuItem.setAccelerator(lkc);
+    toolsLinkTweakerMenuItem.setOnAction(e -> invokeLinkTweaker());
+    toolsMenu.getItems().add(toolsLinkTweakerMenuItem);
     
   }
   
@@ -1422,7 +1502,7 @@ public class Notenik
         modOK = modIfChanged();
       }
       DirectoryChooser chooser = new DirectoryChooser();
-
+      
       if (modOK) {
         chooser.setTitle ("Pick a Backups Folder");
         FileName noteFileName = new FileName (home.getUserHome());
@@ -1437,7 +1517,8 @@ public class Notenik
           if (backedUp) {
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("Backup Results");
-            alert.setContentText("Backup completed successfully");
+            alert.setHeaderText("Collection successfully backed up to:");
+            alert.setContentText(backupFolder.toString());
             alert.showAndWait();
           } // end if backed up successfully
         } // end if the user selected a backup location
@@ -1462,13 +1543,6 @@ public class Notenik
    */
   private boolean modIfChanged () {
     
-    System.out.println("Notenik.modIfChanged");
-    System.out.println("  - Initial value of modified = " + String.valueOf(modified));
-    System.out.println("  - File Open? " + String.valueOf(model.isOpen()));
-    System.out.println("  - Note Displayed? " + String.valueOf(noteDisplayed));
-    System.out.println("  - Model has selection? " + String.valueOf(model.hasSelection()));
-    System.out.println("  - Displayed ID = " + String.valueOf(displayedID));
-    System.out.println("  - Selected  ID = " + String.valueOf(model.getSelectedID()));
     modInProgress = true;
     boolean modOK = true;
     
@@ -1477,7 +1551,6 @@ public class Notenik
         && noteDisplayed
         && displayedID >= 0
         && displayedID == model.getSelectedID()) {
-      System.out.println("  - Current note has title of " + model.getSelection().getTitle());
       checkFieldsForChanges();
 
       // If entry has been modified, then let's update if we can
@@ -2377,7 +2450,6 @@ public class Notenik
   private void position(Note noteToSelect) {
     
     // Let's try to select the note within the TableView
-    System.out.println("Notenik.position");
     SortedNote sortedNote = model.getSortedNote(noteToSelect);
     if (sortedNote != null) {
       noteTable.getSelectionModel().clearSelection();
@@ -2796,11 +2868,8 @@ public class Notenik
   */
   @Override
   public void stop() {
-    System.out.println("Notenik.stop");
     closeFile();
-    System.out.println("  - Done closing file");
     savePrefs();
-    System.out.println("  - Done saving prefs");
   }
   
   /**

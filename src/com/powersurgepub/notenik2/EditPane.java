@@ -97,12 +97,6 @@ public class EditPane {
         case (DataFieldDefinition.TAGS_TYPE):
           tagsTextSelector = (TextSelector)widgetWithLabel.getWidget();
           tagsTextSelector.setValueList(model.getTagsList());
-          tagsTextSelector.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent evt) {
-              System.out.println("EditPane.addWidgets tags action event");
-            }
-          });
           break;
         case (DataFieldDefinition.LINK_TYPE):
           linkWidget = widgetWithLabel.getWidget();
