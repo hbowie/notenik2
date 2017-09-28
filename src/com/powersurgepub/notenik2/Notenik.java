@@ -1618,9 +1618,6 @@ public class Notenik
         if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
           if (! model.getSelection().equalsTitle (widget.getText())) {
             String oldTitle = model.getSelection().getTitle();
-            System.out.println("  - Title changed from");
-            System.out.println("      " + oldTitle + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setTitle (widget.getText());
             modified = true;
           }
@@ -1632,9 +1629,6 @@ public class Notenik
                 && model.getSelection().blankLink())) {
             // No change
           } else {
-            System.out.println("  - Link changed from");
-            System.out.println("      " + model.getSelection().getLinkAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setLink (widget.getText());
             modified = true;
           }
@@ -1642,9 +1636,6 @@ public class Notenik
         else
         if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
           if (! model.getSelection().equalsTags (widget.getText())) {
-            System.out.println("  - Tags changed from");
-            System.out.println("      " + model.getSelection().getTagsAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setTags (widget.getText());
             modified = true;
           }
@@ -1652,9 +1643,6 @@ public class Notenik
         else
         if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
           if (! widget.getText().equals (model.getSelection().getBody())) {
-            System.out.println("  - Body changed from");
-            System.out.println("      " + model.getSelection().getBody() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setBody (widget.getText());
             modified = true;
           }
@@ -1662,9 +1650,6 @@ public class Notenik
         else
         if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
           if (! widget.getText().equals (model.getSelection().getSeq())) {
-            System.out.println("  - Seq changed from");
-            System.out.println("      " + model.getSelection().getSeqAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setSeq (widget.getText());
             modified = true;
           }
@@ -1673,9 +1658,6 @@ public class Notenik
         if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
           ItemStatus statusValue = new ItemStatus(widget.getText());
           if (model.getSelection().getStatus().compareTo(statusValue) != 0) {
-            System.out.println("  - Status changed from");
-            System.out.println("      " + model.getSelection().getStatusAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setStatus (widget.getText());
             modified = true;
           }
@@ -1684,9 +1666,6 @@ public class Notenik
         if (fieldName.equalsIgnoreCase(NoteParms.RECURS_FIELD_NAME)) {
           RecursValue recursValue = new RecursValue(widget.getText());
           if (model.getSelection().getRecurs().compareTo(recursValue) != 0) {
-            System.out.println("  - Recurs changed from");
-            System.out.println("      " + model.getSelection().getRecursAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setRecurs (widget.getText());
             modified = true;
           }
@@ -1695,9 +1674,6 @@ public class Notenik
         if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)) {
           String newDate = widget.getText();
           if (model.getSelection().getDateAsString().compareTo(newDate) != 0) {
-            System.out.println("  - Date changed from");
-            System.out.println("      " + model.getSelection().getDateAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().setDate(newDate);
             modified = true;
           }
@@ -1705,9 +1681,6 @@ public class Notenik
         else {
           DataField nextField = model.getSelection().getField(i);
           if (! widget.getText().equals(nextField.getData())) {
-            System.out.println("  - " + fieldName + " changed from");
-            System.out.println("      " + model.getSelection().getLinkAsString() + " to ");
-            System.out.println("      " + widget.getText());
             model.getSelection().storeField(fieldName, widget.getText());
             modified = true;
           } // end if generic field has been changed
@@ -3047,6 +3020,7 @@ public class Notenik
   */
   private void newCollection() {
     
+    reports.setDataFolder(model.getFileSpec().getFolder());
     displayedID = -1;
     if (model.editingMasterCollection()) {
       launchButton.setText("Open");
