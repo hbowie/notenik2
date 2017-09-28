@@ -249,7 +249,9 @@ public class Notenik
   private             TreeView            noteTree;
   private             MultipleSelectionModel<SortedNote> treeSelModel;
   private             ObservableList<Integer> treeSelected;
-  private             TagsView            tagsView;
+  private             HBox                treeButtonsPane;
+  private             Button              expandAllButton;
+  private             Button              collapseAllButton;
   
   private             TabPane             noteTabs;
   public static final int                   DISPLAY_TAB_INDEX = 0;
@@ -1083,28 +1085,10 @@ public class Notenik
    an outline. 
   */
   private void buildCollectionTabs() {
-    noteTable = model.getTableView();
-    selModel = noteTable.getSelectionModel();
-    selected = selModel.getSelectedIndices();
-    selected.addListener((ListChangeListener.Change<? extends Integer> change) ->
-      {
-        tableRowSelected();
-      });
+
     listPane = new BorderPane();
-    listPane.setCenter(noteTable);
+    newViews();
     listTab.setContent(listPane);
-    
-    treePane = new BorderPane();
-    noteTree = model.getTree();
-    treeSelModel = noteTree.getSelectionModel();
-    treeSelected = treeSelModel.getSelectedIndices();
-    treeSelected.addListener(
-        (ListChangeListener.Change<? extends Integer> change) ->
-      {
-        treeNodeSelected();
-      });
-    treePane.setCenter(noteTree);
-    tagsTab.setContent(treePane);
     
   } // end method buildCollectionTabs
   
@@ -1163,9 +1147,26 @@ public class Notenik
       {
         treeNodeSelected();
       });
-    if (treePane != null) {
-      treePane.setCenter(noteTree);
-    }
+    
+    treePane = new BorderPane();
+    
+    noteTree.setMaxWidth(Double.MAX_VALUE);
+    treePane.setCenter(noteTree);
+    // GridPane.setVgrow(noteTree, Priority.ALWAYS);
+    // GridPane.setHgrow(noteTree, Priority.ALWAYS);
+    
+    expandAllButton = new Button("Expand All");
+    expandAllButton.setOnAction(e -> expandAllTags());
+    
+    collapseAllButton = new Button("Collapse All");
+    collapseAllButton.setOnAction(e -> collapseAllTags());
+    
+    treeButtonsPane = new HBox(10, expandAllButton, collapseAllButton);
+    
+    treePane.setBottom(treeButtonsPane);
+    BorderPane.setMargin(treeButtonsPane, new Insets(10));
+    
+    tagsTab.setContent(treePane);
   }
 
   /**
@@ -2451,8 +2452,8 @@ public class Notenik
         && selectedNote != null) {
       boolean modOK = false;
       if (modInProgress) {
-        System.out.println("Notenik.tableRowSelected mod in progress = " 
-            + String.valueOf(modInProgress));
+        // System.out.println("Notenik.tableRowSelected mod in progress = " 
+        //     + String.valueOf(modInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -2506,38 +2507,11 @@ public class Notenik
   } // end method treeNodeSelected
   
   private void expandAllTags() {
-    TreeItem<TagsNodeValue> root = tagsView.getRootNode();
-    expandAll(root);
-  }
-
-  private void expandAll(TreeItem<TagsNodeValue> parent) {
-    TreeItem<TagsNodeValue> node = parent;
-    if (node.getChildren().size() >= 0) {
-      ObservableList<TreeItem<TagsNodeValue>> kids = node.getChildren();
-      for (int i = 0; i < kids.size(); i++) {
-        TreeItem<TagsNodeValue> kid = kids.get(i);
-        expandAll(kid);
-      }
-    }
-    parent.setExpanded(true);
-    // tree.collapsePath(parent);
+    model.expandAll();
   }
   
   private void collapseAllTags() {
-    TreeItem<TagsNodeValue> root = tagsView.getRootNode();
-    collapseAll(root);
-  }
-  
-  private void collapseAll(TreeItem<TagsNodeValue> parent) {
-    TreeItem<TagsNodeValue> node = parent;
-    if (node.getChildren().size() >= 0) {
-      ObservableList<TreeItem<TagsNodeValue>> kids = node.getChildren();
-      for (int i = 0; i < kids.size(); i++) {
-        TreeItem<TagsNodeValue> kid = kids.get(i);
-        collapseAll(kid);
-      }
-    }
-    parent.setExpanded(false);
+    model.collapseAll();
   }
   
   public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
