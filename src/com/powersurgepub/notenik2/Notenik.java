@@ -114,7 +114,7 @@ public class Notenik
   private             File                currentDirectory;
   private             NoteExport          exporter;
   // private             String              oldTitle = "";
-  private             String              oldSeq = "";
+  // private             String              oldSeq = "";
   // private             String              fileName = "";
   // private             boolean             fileOpen = false;
 
@@ -1707,7 +1707,8 @@ public class Notenik
     if (model.getSortParm().getParm() == NoteSortParm.SORT_BY_SEQ_AND_TITLE
         && model.hasSelection()) {
       newSeq = new DataValueSeq(model.getSelectedSeq().toString());
-      newSeq.increment(false);
+      boolean incrementingOnLeft = (newSeq.getPositionsToRightOfDecimal() == 0);
+      newSeq.increment(incrementingOnLeft);
     }
     
     boolean modOK = false;
@@ -1720,25 +1721,20 @@ public class Notenik
 
     if (modOK) {
       Note newNote = model.getNewNote();
-      boolean seqSet = false;
-      if (oldSeq != null && oldSeq.length() > 0) {
-        newNote.setSeq(oldSeq);
-        seqSet = true;
-      }
-      else
+      // boolean seqSet = false;
       if (newSeq != null) {
         newNote.setSeq(newSeq.toString());
-        seqSet = true;
+        // seqSet = true;
       }
 
       model.select(newNote);
       displaySelectedNote();
       editPane.setTags(model.getSelectedTags());
-      if (seqSet) {
-        editPane.setSeq(newNote.getSeq());
-      }
+      // if (seqSet) {
+      //   editPane.setSeq(newNote.getSeq());
+      // }
       noteTabs.getSelectionModel().select(EDIT_TAB_INDEX);
-      oldSeq = "";
+      // oldSeq = "";
     }
   }
   
@@ -2484,8 +2480,8 @@ public class Notenik
       if (nodeValue.getNodeType() == TagsNodeValue.ITEM) {
         boolean modOK = false;
         if (modInProgress) {
-          System.out.println("Notenik.tableRowSelected mod in progress = " 
-              + String.valueOf(modInProgress));
+          // System.out.println("Notenik.treeNodeSelected mod in progress = " 
+          //     + String.valueOf(modInProgress));
         } else {
           modOK = modIfChanged();
         }
@@ -2971,6 +2967,8 @@ public class Notenik
   private void openFile(File fileToOpen) {
     FileSpec fileSpec = model.getMaster().getFileSpec(fileToOpen);
     if (fileSpec == null) {
+      System.out.println("Notenik.openFile with File = " + fileToOpen.toString());
+      System.out.println("  - Creating new File Spec");
       fileSpec = new FileSpec(fileToOpen);
     }
     openFile(fileSpec);
@@ -3219,9 +3217,19 @@ public class Notenik
           "Selection Error",
           javax.swing.JOptionPane.WARNING_MESSAGE);
     } else {
-      oldSeq = model.getSelection().getSeq();
-      String newSeq = model.incrementSeq();
-      editPane.setSeq(newSeq);
+      boolean modOK = false;
+      if (modInProgress) {
+        // Do nothing
+      } else {
+        modOK = modIfChanged();
+      }
+      if (modOK) {
+        String startingTitle = model.getSelection().getTitle();
+        // oldSeq = model.getSelection().getSeq();
+        String newSeq = model.incrementSeq();
+        Note noteToSelect = model.getFromTitle(startingTitle);
+        selectPositionAndDisplay(noteToSelect);
+      }
     }
   }
 
