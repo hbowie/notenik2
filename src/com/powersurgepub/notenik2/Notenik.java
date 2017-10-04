@@ -317,8 +317,6 @@ public class Notenik
 
   private DateFormat    longDateFormatter
       = new SimpleDateFormat ("EEEE MMMM d, yyyy");
-  private DateFormat  backupDateFormatter
-      = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
   private    DateFormat       dateFormatter
     = new SimpleDateFormat ("yyyy-MM-dd");
 
@@ -1487,13 +1485,15 @@ public class Notenik
   }
   
   /**
-   Prompt the user for a backup location. 
+   Prompt the user for a backup location, then backup and prune if he
+   provides one. 
 
    @return True if backup was successful.
   */
   public boolean promptForBackup() {
     
-    boolean backedUp = false;
+    BackupInfo backupInfo = model.getBackupInfo();
+    
     if (model.isOpen()) {
       boolean modOK = false;
       if (modInProgress) {
@@ -1502,31 +1502,28 @@ public class Notenik
       } else {
         modOK = modIfChanged();
       }
-      DirectoryChooser chooser = new DirectoryChooser();
       
       if (modOK) {
-        chooser.setTitle ("Pick a Backups Folder");
-        FileName noteFileName = new FileName (home.getUserHome());
-        noteFileName = new FileName (model.getFolder());
-        File initialFolder = model.getBackupFolder();
-        chooser.setInitialDirectory (initialFolder);
-        File selectedFolder = chooser.showDialog (primaryStage);
-        if (selectedFolder != null) {
-          File backupFolder = selectedFolder;
-          backedUp = model.backup (backupFolder);
-          model.setBackupFolder(backupFolder);
-          if (backedUp) {
+        File selectedFile = backupInfo.letUserChooseBackupFile(primaryStage);
+        if (backupInfo.okSoFar()) {
+          backupInfo.backupToZip();
+          model.setBackupFolder(backupInfo.getBackupFolder());
+          if (backupInfo.okSoFar()) {
+            backupInfo.pruneBackups();
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("Backup Results");
             alert.setHeaderText("Collection successfully backed up to:");
-            alert.setContentText(backupFolder.toString());
+            alert.setContentText(
+                "Folder: " + backupInfo.getBackupFolder().toString()
+                + GlobalConstants.LINE_FEED_STRING
+                + "File: " + backupInfo.getBackupFileName());
             alert.showAndWait();
           } // end if backed up successfully
         } // end if the user selected a backup location
       } // end if modIfChanged had no problems
     }
 
-    return backedUp;
+    return backupInfo.backupSuccess();
   }
   
   /**
@@ -1535,7 +1532,7 @@ public class Notenik
    @return True if backup was successful. 
   */
   public boolean backupWithoutPrompt() {
-    return model.backupWithoutPrompt();
+    return model.backupZipWithoutPrompt();
   }
   
  /**
