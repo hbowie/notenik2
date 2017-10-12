@@ -721,13 +721,14 @@ public class NoteExport {
     String tag = "";
     while (onDeckCircle != null && okSoFar) {
       node = onDeckCircle;
-      // level = node.getLevel();
+      level = node.getValue().getTreeLevel();
       switch (node.getValue().getNodeType()) {
         case TagsNodeValue.ROOT:
           // Don't need to do anything with the root node
           break;
         case TagsNodeValue.TAG:
           // A tag, or folder within which bookmarks are stored
+          String nodeTag = node.getValue().toString();
           if (inFavorites && (level <= favoritesLevel)) {
             // Beyond Favorites
             writeFavorites(file);
@@ -736,11 +737,10 @@ public class NoteExport {
           if (inFavorites) {
             // Favorites sub-folder
             favoriteSection = new FavoriteSection
-                (node.toString(), level - favoritesLevel);
+                (nodeTag, level - favoritesLevel);
             sections.add(favoriteSection);
             listLevel = level;
           } else {
-            String nodeTag = node.toString();
             tag = "";
             int i = 0;
             boolean found = false;
@@ -761,7 +761,7 @@ public class NoteExport {
               file = new File (publishTo, nodeTag.toLowerCase() + ".html");
               markupWriter = new MarkupWriter (file, MarkupWriter.HTML_FORMAT);
               markupWriterOpen = true;
-              startFavorites(node.toString());
+              startFavorites(nodeTag);
             }
           }
           break;
@@ -1241,9 +1241,11 @@ public class NoteExport {
     writeEndTag (TextType.PARAGRAPH);
     writeStartTag (TextType.DEFINITION_LIST);
 
-    publishIndexLink ("List of all URLS", urlFile.getName(),
+    if (urlFile != null) {
+      publishIndexLink ("List of all URLS", urlFile.getName(),
         "A complete list of your URL collection, sequenced by domain name. "
         + "This is the native format used by URL Union to store your URLs.");
+    }
 
     if (favoritesWritten) {
       publishIndexLink ("Favorites", favoritesFileName,

@@ -179,7 +179,7 @@ public class Notenik
   private             MenuItem              collectionPrefsMenuItem;
   private             MenuItem              findMenuItem;
   private             MenuItem              replaceMenuItem;
-  private             MenuItem              addReplaceMenuItem;
+  private             MenuItem              addReplaceTagsMenuItem;
   private             MenuItem              flattenTagsMenuItem;
   private             MenuItem              lowerCaseTagsMenuItem;
   private             MenuItem              validateURLsMenuItem;
@@ -288,8 +288,6 @@ public class Notenik
   private             PrefsJuggler        collectionPrefs;
   private             FolderSyncPrefs     folderSyncPrefs;
   private             HTMLPrefs           htmlPrefs;
-  
-  // private             MasterCollection    masterCollection;
   
   private             Reports             reports;
   
@@ -458,6 +456,7 @@ public class Notenik
     
     // Set up separate window for Collection Preferences
     collectionPrefs = new PrefsJuggler(primaryStage);
+    collectionPrefs.setTitle("Collection Preferences");
     
     folderSyncPrefs = new FolderSyncPrefs(this, primaryStage);
     collectionPrefs.addSet(folderSyncPrefs);
@@ -645,7 +644,7 @@ public class Notenik
     fxUtils.addSeparator(fileMenu);
     
     // New Collection Menu Item
-    fileNewMenuItem = new MenuItem("New...");
+    fileNewMenuItem = new MenuItem("New Collection...");
     fileNewMenuItem.setOnAction(new EventHandler<ActionEvent>() {
       @Override
       public void handle(ActionEvent evt) {
@@ -813,7 +812,7 @@ public class Notenik
     
     // Collection Prefs Menu Item
     collectionPrefsMenuItem = new MenuItem("Collection Preferences");
-    collectionMenu.setOnAction(e -> displayAuxiliaryWindow(collectionPrefs));
+    collectionPrefsMenuItem.setOnAction(e -> displayAuxiliaryWindow(collectionPrefs));
     collectionMenu.getItems().add(collectionPrefsMenuItem);
     
     fxUtils.addSeparator(collectionMenu);
@@ -837,9 +836,9 @@ public class Notenik
     fxUtils.addSeparator(collectionMenu);
     
     // Add/Replace Tag Menu Item
-    addReplaceMenuItem = new MenuItem("Add/Replace Tag...");
-    addReplaceMenuItem.setOnAction(e -> checkTags());
-    collectionMenu.getItems().add(addReplaceMenuItem);
+    addReplaceTagsMenuItem = new MenuItem("Add/Replace Tag...");
+    addReplaceTagsMenuItem.setOnAction(e -> checkTags());
+    collectionMenu.getItems().add(addReplaceTagsMenuItem);
     
     // Flatten Tag Levels Menu Item
     flattenTagsMenuItem = new MenuItem("Flatten Tag Levels");
@@ -1349,6 +1348,7 @@ public class Notenik
    @param publishTo The folder to which we are publishing.
    */
   public void prePub(File publishTo) {
+
     // File urlsTab = new File (publishTo, "urls.tab");
     // io.exportToTabDelimited(noteList, urlsTab, false, "");
     
@@ -1509,6 +1509,7 @@ public class Notenik
           backupInfo.backupToZip();
           model.setBackupFolder(backupInfo.getBackupFolder());
           if (backupInfo.okSoFar()) {
+            model.saveLastBackupDate();
             backupInfo.pruneBackups();
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("Backup Results");
@@ -1702,7 +1703,8 @@ public class Notenik
     
     DataValueSeq newSeq = null;
     if (model.getSortParm().getParm() == NoteSortParm.SORT_BY_SEQ_AND_TITLE
-        && model.hasSelection()) {
+        && model.hasSelection()
+        && model.getSelection().hasSeq()) {
       newSeq = new DataValueSeq(model.getSelectedSeq().toString());
       boolean incrementingOnLeft = (newSeq.getPositionsToRightOfDecimal() == 0);
       newSeq.increment(incrementingOnLeft);
@@ -1833,7 +1835,7 @@ public class Notenik
       Note initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
-          workIndex < model.size(); 
+          (workIndex >= 0 && workIndex < model.size()); 
           workIndex = model.nextNote(workIndex)) {
         model.select(workIndex);
         model.getSelection().getTags().replace (from, to);
@@ -1868,7 +1870,7 @@ public class Notenik
       Note initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
-          workIndex < model.size(); 
+          workIndex >= 0 && workIndex < model.size(); 
           workIndex = model.nextNote(workIndex)) {
         model.select(workIndex);
         model.getSelection().flattenTags();
@@ -1877,6 +1879,14 @@ public class Notenik
           model.modifySelection();
         }
       }
+      
+      Alert alert = new Alert(AlertType.INFORMATION);
+      alert.setTitle("Flatten Tags Results");
+      alert.setHeaderText(null);
+      alert.setContentText(String.valueOf (mods)
+            + " tags flattened");
+      alert.showAndWait();
+      
       selectPositionAndDisplay(initialSelection);
     }
   }
@@ -1895,7 +1905,7 @@ public class Notenik
       Note initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
-          workIndex < model.size(); 
+          workIndex >= 0 && workIndex < model.size(); 
           workIndex = model.nextNote(workIndex)) {
         model.select(workIndex);
         model.getSelection().lowerCaseTags();
@@ -1904,6 +1914,14 @@ public class Notenik
           model.modifySelection();
         }
       }
+      
+      Alert alert = new Alert(AlertType.INFORMATION);
+      alert.setTitle("Lower Case Tags Results");
+      alert.setHeaderText(null);
+      alert.setContentText(String.valueOf (mods)
+            + " tags changed to lower case");
+      alert.showAndWait();
+      
       selectPositionAndDisplay(initialSelection);
     }
   } 
@@ -2351,7 +2369,6 @@ public class Notenik
           ok = modIfChanged();
         }
         if (ok) {
-          System.out.println("  - mod ok");
           noFindInProgress();
           String titleToSelect = model.nextTitle();
           model.select(titleToSelect);
@@ -2558,8 +2575,10 @@ public class Notenik
     if (model.getSelection().hasInconsistentDiskLocation()) {
       Alert alert = new Alert(AlertType.CONFIRMATION);
       alert.setTitle("Title/File Name Mismatch");
-      alert.setHeaderText(null);
-      alert.setContentText("The Note's file name does not match its title");
+      alert.setHeaderText("The Note's file name does not match its title");
+      alert.setContentText("File Name: " + model.getSelection().getDiskLocationBase()
+          + GlobalConstants.LINE_FEED_STRING
+          + "Simplified Title: " + model.getSelection().getFileName());
 
       ButtonType changeFileName = new ButtonType("Change file name to match title");
       ButtonType leaveFileName = new ButtonType("Leave it as is", ButtonData.CANCEL_CLOSE);
@@ -2759,6 +2778,7 @@ public class Notenik
   }
   
   public void displayCollectionPrefs () {
+    System.out.println("Notenik.displayCollectionPrefs");
     displayAuxiliaryWindow(collectionPrefs);
   }
 
@@ -2989,7 +3009,8 @@ public class Notenik
   */
   private void newCollection() {
     
-    reports.setDataFolder(model.getFileSpec().getFolder());
+    reports.setDataFolder(model.getFolder());
+    publishWindow.openSource(model.getFolder());
     displayedID = -1;
     if (model.editingMasterCollection()) {
       launchButton.setText("Open");
@@ -3152,6 +3173,7 @@ public class Notenik
    We will either mark it as complete, or bump the date. 
   */
   private void closeNote() {
+    System.out.println("Notenik.closeNote");
     if (model.isOpen() && model.hasSelection()) {
       boolean modOK = false;
       if (modInProgress) {
@@ -3162,6 +3184,9 @@ public class Notenik
       }
       if (modOK) {
         Note note = model.getSelection();
+        System.out.println("  - Note Title = " + note.getTitle());
+        System.out.println("  - Note has Recurs? " + String.valueOf(note.hasRecurs()));
+        System.out.println("  - Note has Date? " + String.valueOf(note.hasDate()));
         boolean closeMods = false;
         if (note.hasRecurs() && note.hasDate()) {
           // Increment Date and leave status alone
@@ -3780,7 +3805,7 @@ public class Notenik
         URLValidator validator;
         for (
             int workIndex = model.firstNote(); 
-            workIndex < model.size(); 
+            workIndex >= 0 && workIndex < model.size(); 
             workIndex = model.nextNote(workIndex)) {
           workNote = model.get (workIndex);
           address = workNote.getURLasString();
