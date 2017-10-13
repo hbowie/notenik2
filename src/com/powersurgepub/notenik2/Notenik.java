@@ -66,6 +66,7 @@ public class Notenik
     extends Application
     implements
       AppToBackup,
+      AppWithLinksToValidate,
       DateWidgetOwner,
       DisplayWindow,
       FileSpecOpener,
@@ -344,13 +345,13 @@ public class Notenik
   private             int                 bodyStart = -1;
 
   // Fields used to validate Web Page Notes
-  private             javax.swing.Timer   validateURLTimer;
   private             ThreadGroup         webPageGroup;
-  private             ArrayList           urlValidators;
-  private             int                 progressMax = 0;
-  private             int                 progress = 0;
-  private             int                 badPages = 0;
-  private             ProgressWindow      progressWindow;
+  private             ArrayList<URLValidator> urlValidators;
+  private             int                 linksToCheck = 0;
+  private             int                 linksChecked = 0;
+  private             int                 deadLinks = 0;
+  private             URLValidationProgressWindow      progressWindow;
+  private             Note                initialSelection;
   
   // System ClipBoard fields
   boolean             clipBoardOwned = false;
@@ -1832,7 +1833,7 @@ public class Notenik
     }
 
     if (modOK) {
-      Note initialSelection = model.getSelection();
+      initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
           (workIndex >= 0 && workIndex < model.size()); 
@@ -1867,7 +1868,7 @@ public class Notenik
     }
 
     if (modOK) {
-      Note initialSelection = model.getSelection();
+      initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
           workIndex >= 0 && workIndex < model.size(); 
@@ -1902,7 +1903,7 @@ public class Notenik
     }
 
     if (modOK) {
-      Note initialSelection = model.getSelection();
+      initialSelection = model.getSelection();
       int mods = 0;
       for (int workIndex = model.firstNote(); 
           workIndex >= 0 && workIndex < model.size(); 
@@ -2462,7 +2463,7 @@ public class Notenik
         && selectedNote != null) {
       boolean modOK = false;
       if (modInProgress) {
-        // System.out.println("Notenik.tableRowSelected mod in progress = " 
+        // System.out.println("Notenik.tableRowSelected mod in linksChecked = " 
         //     + String.valueOf(modInProgress));
       } else {
         modOK = modIfChanged();
@@ -2494,7 +2495,7 @@ public class Notenik
       if (nodeValue.getNodeType() == TagsNodeValue.ITEM) {
         boolean modOK = false;
         if (modInProgress) {
-          // System.out.println("Notenik.treeNodeSelected mod in progress = " 
+          // System.out.println("Notenik.treeNodeSelected mod in linksChecked = " 
           //     + String.valueOf(modInProgress));
         } else {
           modOK = modIfChanged();
@@ -2778,7 +2779,6 @@ public class Notenik
   }
   
   public void displayCollectionPrefs () {
-    System.out.println("Notenik.displayCollectionPrefs");
     displayAuxiliaryWindow(collectionPrefs);
   }
 
@@ -2984,8 +2984,6 @@ public class Notenik
   private void openFile(File fileToOpen) {
     FileSpec fileSpec = model.getMaster().getFileSpec(fileToOpen);
     if (fileSpec == null) {
-      System.out.println("Notenik.openFile with File = " + fileToOpen.toString());
-      System.out.println("  - Creating new File Spec");
       fileSpec = new FileSpec(fileToOpen);
     }
     openFile(fileSpec);
@@ -3173,7 +3171,7 @@ public class Notenik
    We will either mark it as complete, or bump the date. 
   */
   private void closeNote() {
-    System.out.println("Notenik.closeNote");
+
     if (model.isOpen() && model.hasSelection()) {
       boolean modOK = false;
       if (modInProgress) {
@@ -3184,9 +3182,6 @@ public class Notenik
       }
       if (modOK) {
         Note note = model.getSelection();
-        System.out.println("  - Note Title = " + note.getTitle());
-        System.out.println("  - Note has Recurs? " + String.valueOf(note.hasRecurs()));
-        System.out.println("  - Note has Date? " + String.valueOf(note.hasDate()));
         boolean closeMods = false;
         if (note.hasRecurs() && note.hasDate()) {
           // Increment Date and leave status alone
@@ -3781,90 +3776,104 @@ public class Notenik
 
     if (modOK) {
 
-      // Make sure user is ready to proceed
+      initialSelection = model.getSelection();
+      // Prepare Auxiliary List to track invalid Notes
+      webPageGroup = new ThreadGroup("URL Validation threads");
+      urlValidators = new ArrayList<>();
+      linksChecked = 0;
+      progressWindow = new URLValidationProgressWindow(primaryStage,
+          "Progress Validating Links", this);
 
-      Alert alert = new Alert(AlertType.CONFIRMATION);
-      alert.setTitle("Validate Web Pages");
-      alert.setHeaderText(null);
-      alert.setContentText("Please ensure your Internet connection is active");
-      ButtonType continueButton = new ButtonType("Continue");
-      ButtonType cancelButton = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
-      alert.getButtonTypes().setAll(continueButton, cancelButton);
-      Optional<ButtonType> result = alert.showAndWait();
-
-      // If User is ready, then proceed
-      if (result.get() == continueButton) {
-
-        // Prepare Auxiliary List to track invalid Notes
-        webPageGroup = new ThreadGroup("URL Validation threads");
-        urlValidators = new ArrayList();
-
-        // Go through sorted items looking for Web Pages
-        Note workNote;
-        String address;
-        URLValidator validator;
-        for (
-            int workIndex = model.firstNote(); 
-            workIndex >= 0 && workIndex < model.size(); 
-            workIndex = model.nextNote(workIndex)) {
-          workNote = model.get (workIndex);
-          address = workNote.getURLasString();
-          if (address.length() > 0) {
-            validator = new URLValidator (workNote, workIndex);
-            validator.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
-              @Override
-              public void handle(WorkerStateEvent evt) {
-                progress++;
-                progressWindow.setProgress(progress, progressMax);
-                if (progress >= progressMax) {
-                  validateURLAllDone();
-                } // end if all pages checked
-              }
-            });
-            validator.setOnFailed(new EventHandler<WorkerStateEvent>() {
-              @Override
-              public void handle(WorkerStateEvent evt) {
-                progress++;
-                progressWindow.setProgress(progress, progressMax);
-                badPages++;
-                if (progress >= progressMax) {
-                  validateURLAllDone();
-                } // end if all pages checked
-              }
-            });
-            urlValidators.add (validator);
-          }
-        } // end of list
-
-        // Prepare dialog to show validation progress
-        progress = 0;
-        progressMax = urlValidators.size();
-        ProgressWindow progressWindow = new ProgressWindow(primaryStage,
-            "Progress Validating URLs");
-        windowMenuManager.add(progressWindow);
-        windowMenuManager.makeVisible(progressWindow);
-
-        // Now start threads to check Web pages
-        badPages = 0;
-        for (int i = 0; i < urlValidators.size(); i++) {
-          validator = (URLValidator)urlValidators.get(i);
-          Thread validatorThread = new Thread(webPageGroup, validator);
-          validatorThread.setDaemon(true);
-          validatorThread.start();
-        } // end for each page being validated
-
-        // Start timer to give the user a chance to cancel
-        /*
-        if (validateURLTimer == null) {
-          validateURLTimer = new javax.swing.Timer (ONE_SECOND, this);
-        } else {
-          validateURLTimer.setDelay (ONE_SECOND);
+      // Go through sorted items looking for Web Pages
+      // Build a list of URL validator tasks
+      Note workNote;
+      String address;
+      URLValidator validator;
+      for (
+          int workIndex = model.firstNote(); 
+          workIndex >= 0 && workIndex < model.size(); 
+          workIndex = model.nextNote(workIndex)) {
+        workNote = model.get (workIndex);
+        address = workNote.getURLasString();
+        if (address.length() > 0) {
+          validator = new URLValidator (workNote, workIndex);
+          validator.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent evt) {
+              linksChecked++;
+              progressWindow.setLinksChecked(linksChecked);
+            }
+          });
+          validator.setOnFailed(new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent evt) {
+              linksChecked++;
+              deadLinks++;
+              progressWindow.setLinksChecked(linksChecked);
+              progressWindow.setBadLinks(deadLinks);
+              Worker badWorker = evt.getSource();
+              if (badWorker instanceof URLValidator) {
+                URLValidator badValidator = (URLValidator)badWorker;
+                ItemWithURL badItem = badValidator.getItemWithURL();
+                if (badItem instanceof Note) {
+                  Note badNote = (Note)badItem;
+                  if (! badNote.getTagsAsString().contains(INVALID_URL_TAG)) {
+                    if (model.getSelection().getTitle().equals(badNote.getTitle())) {
+                      model.getSelection().getTags().merge(INVALID_URL_TAG);
+                      model.modifySelection();
+                      editPane.setTags(model.getSelection().getTagsAsString());
+                    } else {
+                      String priorTitle = badNote.getTitle();
+                      String priorSortKey = badNote.getSortKey(model.getSortParm());
+                      String priorTags = badNote.getTagsAsString();
+                      badNote.getTags().merge (INVALID_URL_TAG);
+                      model.modify(badNote, priorTitle, priorSortKey, priorTags);
+                    }
+                  } // End if we don't already have an invalid URL tag
+                } // end if we have a good note instance
+              } // end if we have a good url validator instance
+            }
+          });
+          urlValidators.add (validator);
         }
-        validateURLTimer.start();
-        */
-      } // continue rather than cancel
+      } // end of list
+
+      linksToCheck = urlValidators.size();
+      deadLinks = 0;
+      progressWindow.setLinksToCheck(linksToCheck);
+      windowMenuManager.add(progressWindow);
+      windowMenuManager.makeVisible(progressWindow);
+
     }
   } // end validateURLs method
+  
+  public void startLinkValidation() {
+
+    progressWindow.validationStarting();
+    // Now start threads to check Web pages
+    URLValidator validator;
+    for (int i = 0; i < urlValidators.size(); i++) {
+      validator = urlValidators.get(i);
+      Thread validatorThread = new Thread(webPageGroup, validator);
+      validatorThread.setDaemon(true);
+      validatorThread.start();
+    } // end for each page being validated
+
+  }
+  
+  public void stopLinkValidation() {
+    if (! progressWindow.allDone()) {
+      URLValidator validator;
+      for (int i = 0; i < urlValidators.size(); i++) {
+        validator = urlValidators.get(i);
+        if (! validator.isDone()) {
+          validator.cancel(true);
+        }
+      }
+    }
+    windowMenuManager.hide(progressWindow);
+    selectPositionAndDisplay(initialSelection);
+  }
 
   /**
     Handle GUI events, including the firing of various timers.
@@ -3895,48 +3904,6 @@ public class Notenik
 
   } // end method
   */
-
-  /**
-    Shut down the URL Validation process and report the results.
-   */
-  private void validateURLAllDone () {
-    if (validateURLTimer != null
-        && validateURLTimer.isRunning()) {
-      validateURLTimer.stop();
-    }
-
-    // Add "Invalid URL" tags to invalid URL items
-    if (badPages > 0) {
-      URLValidator validator;
-      Note workNote;
-      for (int i = 0; i < urlValidators.size(); i++) {
-        validator = (URLValidator)urlValidators.get(i);
-        if (validator.getState() == Worker.State.FAILED) {
-          workNote = model.get (validator.getIndex());
-          if (workNote.equals (validator.getItemWithURL())) {
-            String priorTitle = workNote.getTitle();
-            String priorSortKey = workNote.getSortKey(model.getSortParm());
-            String priorTags = workNote.getTagsAsString();
-            workNote.getTags().merge (INVALID_URL_TAG);
-            model.modify(workNote, priorTitle, priorSortKey, priorTags);
-          } // end if we have the right URL
-        } // end if URL wasn't validated
-      } // end for each page being validated
-      // noteList.fireTableDataChanged();
-    } // end if any bad pages found
-
-    // Close progress dialog and show user the final results
-    windowMenuManager.hideAndRemove(progressWindow);
-
-    Alert alert = new Alert(AlertType.INFORMATION);
-    alert.setTitle("URL Validation Results");
-    alert.setHeaderText("Look, an Information Dialog");
-    alert.setContentText(String.valueOf (badPages)
-          + " Invalid URL(s) Found out of "
-          + String.valueOf (urlValidators.size()));
-    alert.showAndWait();
-
-  } // end method
 
   public File getCurrentDirectory () {
     return currentDirectory;
