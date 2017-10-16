@@ -36,7 +36,7 @@ Following are the supported formats.
 
 * Import/Export in XML Format  
 
-	Your Notes will be represented in an XML format with each field represented as a separate SML tag.
+	Your Notes will be represented in an XML format with each field represented as a separate XML tag.
 
 	Note that, for XML formats, an exported file may contain invalid characters if those are present in your Notes.
 

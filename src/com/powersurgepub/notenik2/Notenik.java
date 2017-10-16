@@ -3272,6 +3272,7 @@ public class Notenik
     }
     File selectedFile = dirChooser.showDialog(primaryStage);
     if (selectedFile != null) {
+      preImport();
       File importFile = selectedFile;
       currentDirectory = importFile;
       NoteIO importer = new NoteIO (
@@ -3283,10 +3284,11 @@ public class Notenik
       } catch (IOException e) {
         ioException(e);
       }
+      postImport();
       // setUnsavedChanges(true);
     }
     // noteList.fireTableDataChanged();
-    firstNote();
+    // firstNote();
   }
   
   private void importXMLFile () {
@@ -3297,12 +3299,14 @@ public class Notenik
     }
     File selectedFile = fileChooser.showOpenDialog(primaryStage);
     if (selectedFile != null) {
+      preImport();
       File importFile = selectedFile;
       NoteImportXML importer = new NoteImportXML(this);
       importer.parse(importFile, model);
+      postImport();
     }
     // noteList.fireTableDataChanged();
-    firstNote();
+    // firstNote();
   }
   
   private void importTabDelimited() {
@@ -3312,11 +3316,29 @@ public class Notenik
     }
     File selectedFile = fileChooser.showOpenDialog(primaryStage);
     if (selectedFile != null) {
+      preImport();
       NoteImportTabDelim importer = new NoteImportTabDelim(this);
       importer.parse(selectedFile, model);
+      postImport();
     }
     // noteList.fireTableDataChanged();
-    firstNote();
+    // firstNote();
+  }
+  
+  /**
+   Let's get ready to import a bunch of notes. 
+  */
+  private void preImport() {
+    closeFile();
+    FileSpec fileSpec = model.getFileSpec();
+    model.open(fileSpec, false);
+  }
+  
+  /**
+   Let's rebuild the UI now that the import has completed. 
+  */
+  private void postImport() {
+    newCollection();
   }
   
   /**
@@ -3338,6 +3360,7 @@ public class Notenik
       dirChooser.setInitialDirectory (top);
       File selectedFile = dirChooser.showDialog(primaryStage);
       if (selectedFile != null) {
+        preImport();
         TextMergeInputMacApps macApps = new TextMergeInputMacApps();
         RecordDefinition recDef = model.getRecDef();
         File[] filesInArray = selectedFile.listFiles();
@@ -3380,9 +3403,11 @@ public class Notenik
           }
           fileIndex++;
         } // end for each file in the directory
+        postImport();
       } // end if user specified a valid directory
+      
       // noteList.fireTableDataChanged();
-      firstNote();
+      //firstNote();
     }
   }
   
@@ -3494,6 +3519,13 @@ public class Notenik
     
   }
   
+  /**
+   Add an imported note to the collection. 
+  
+   @param importNote The note being imported. 
+  
+   @return True if import worked out ok.
+  */
   private boolean addImportedNote(Note importNote) {
     boolean added = false;
     if ((! importNote.hasTitle()) 

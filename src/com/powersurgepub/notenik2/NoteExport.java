@@ -354,11 +354,12 @@ public class NoteExport {
       Counter exported) {
     
     if (node != null) {
+      TagsNodeValue nodeValue = node.getValue();
       switch (node.getValue().getNodeType()) {
         case TagsNodeValue.TAG:
         case TagsNodeValue.ROOT:
           exported.increment();
-          writer.startOutline(node.toString());
+          writer.startOutline(nodeValue.toString());
           TreeItem<TagsNodeValue> child = node.getChildren().get(0);
           while (child != null) {
             exportToOPML (writer, child, exported);
