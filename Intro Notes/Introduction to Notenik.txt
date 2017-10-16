@@ -1,0 +1,15 @@
+Title:  Introduction to Notenik
+
+Seq:    1
+
+Tags:   intro
+
+Body:   
+ 
+Let me introduce you to [Notenik](http://notenik.net), a simple but powerful system for taking, collecting and referencing notes.
+
+This introduction describes Notenik [Version 4.00](http://www.powersurgepub.com/products/notenik/versions.html). 
+
+When you're ready, go ahead and download [Notenik macOS application version 4.00](http://www.notenik.net/Notenik-3.00.dmg).
+
+

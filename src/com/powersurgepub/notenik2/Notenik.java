@@ -1255,7 +1255,7 @@ public class Notenik
     if (modOK) {
       if (NoteCollectionModel.goodFolder(fileSpec.getFolder())) {
         closeFile();
-        openFile (fileSpec);
+        openFile (fileSpec, false);
       }
     }
   }
@@ -1555,7 +1555,6 @@ public class Notenik
 
       // If entry has been modified, then let's update if we can
       if (modified) {
-
         String newFileName = model.getSelection().getFileName();
         
         // Got to have a title
@@ -2947,7 +2946,7 @@ public class Notenik
         publishWindow.closeSource();
         model.close();
         noteDisplayed = false;
-        openFile(fileSpec);
+        openFile(fileSpec, false);
       }
     }
   }
@@ -2967,9 +2966,8 @@ public class Notenik
         savePrefs();
         publishWindow.closeSource();
         model.close();
-        model.setLoadTaggedOnly(true);
         noteDisplayed = false;
-        openFile(fileSpec);
+        openFile(fileSpec, true);
       }
     }
   }
@@ -2986,7 +2984,7 @@ public class Notenik
     if (fileSpec == null) {
       fileSpec = new FileSpec(fileToOpen);
     }
-    openFile(fileSpec);
+    openFile(fileSpec, false);
   }
 
   /**
@@ -2996,9 +2994,9 @@ public class Notenik
   
    @param fileToOpen The file spec identifying the collection to be opened. 
   */
-  private void openFile (FileSpec fileToOpen) {
+  private void openFile (FileSpec fileToOpen, boolean taggedOnly) {
     
-    model.open(fileToOpen);
+    model.open(fileToOpen, taggedOnly);
     newCollection();
   }
   
@@ -3053,8 +3051,8 @@ public class Notenik
       alert.setContentText("Purge Closed Notes?");
 
       ButtonType cancel = new ButtonType("Cancel", ButtonData.CANCEL_CLOSE);
-      ButtonType discard = new ButtonType("Purge and Discard");
-      ButtonType copy = new ButtonType("Purge and Copy");
+      ButtonType discard = new ButtonType("Discard Purged");
+      ButtonType copy = new ButtonType("Copy Purged");
 
       alert.getButtonTypes().setAll(cancel, discard, copy);
 
@@ -3098,7 +3096,7 @@ public class Notenik
           boolean deleted = false;
           if (workNote.getStatus().isDone()) {
             boolean okToDelete = true;  
-            String fileToDelete = workNote.getDiskLocation();         
+            // String fileToDelete = workNote.getDiskLocation();         
             if (option == copy) {
               try {
                 purgeIO.save(purgeTarget, workNote, false);
@@ -3117,14 +3115,14 @@ public class Notenik
                     "Unable to remove " 
                     + workNote.getTitle() + " from note list", false);
               }
-              if (deleted) {
+              /*if (deleted) {
                 deleted = new File(fileToDelete).delete();
               }
               if (! deleted) {
                 trouble.report(
                     "Unable to delete note at " + fileToDelete, 
                     "Delete Failure");
-              }
+              } */
               if (folderSyncPrefs.getSync()) {
                 File syncFile = model.getSyncFile(workNote.getTitle());
                 syncFile.delete();
@@ -3236,7 +3234,7 @@ public class Notenik
     } else {
       boolean modOK = false;
       if (modInProgress) {
-        // Do nothing
+        System.out.println("incrementSeq with modInProgress");
       } else {
         modOK = modIfChanged();
       }
@@ -3244,6 +3242,7 @@ public class Notenik
         String startingTitle = model.getSelection().getTitle();
         // oldSeq = model.getSelection().getSeq();
         String newSeq = model.incrementSeq();
+        editPane.setSeq(model.getSelection().getSeq());
         Note noteToSelect = model.getFromTitle(startingTitle);
         selectPositionAndDisplay(noteToSelect);
       }
@@ -3757,10 +3756,6 @@ public class Notenik
     appster.openURL(url);
   }
 
-  private void tagsActionPerformed (java.awt.event.ActionEvent evt) {
-    
-  }
-
   /**
     Validate the Links associated with the notes in the current list.
    */
@@ -3818,17 +3813,8 @@ public class Notenik
                 if (badItem instanceof Note) {
                   Note badNote = (Note)badItem;
                   if (! badNote.getTagsAsString().contains(INVALID_URL_TAG)) {
-                    if (model.getSelection().getTitle().equals(badNote.getTitle())) {
-                      model.getSelection().getTags().merge(INVALID_URL_TAG);
-                      model.modifySelection();
-                      editPane.setTags(model.getSelection().getTagsAsString());
-                    } else {
-                      String priorTitle = badNote.getTitle();
-                      String priorSortKey = badNote.getSortKey(model.getSortParm());
-                      String priorTags = badNote.getTagsAsString();
-                      badNote.getTags().merge (INVALID_URL_TAG);
-                      model.modify(badNote, priorTitle, priorSortKey, priorTags);
-                    }
+                    badNote.getTags().merge (INVALID_URL_TAG);
+                    updateTagsOnNote(badNote);
                   } // End if we don't already have an invalid URL tag
                 } // end if we have a good note instance
               } // end if we have a good url validator instance
@@ -3846,6 +3832,23 @@ public class Notenik
 
     }
   } // end validateURLs method
+  
+  /**
+   Make an update to a note whose tags have been modified. 
+  
+   @param noteToUpdate The note to update. 
+  */
+  private void updateTagsOnNote(Note noteToUpdate) {
+    if (model.getSelection().getTitle().equals(noteToUpdate.getTitle())) {
+      model.modifySelection();
+      editPane.setTags(model.getSelection().getTagsAsString());
+    } else {
+      String priorTitle = noteToUpdate.getTitle();
+      String priorSortKey = noteToUpdate.getSortKey(model.getSortParm());
+      String priorTags = noteToUpdate.getTagsAsString();
+      model.modify(noteToUpdate, priorTitle, priorSortKey, priorTags);
+    }
+  }
   
   public void startLinkValidation() {
 
@@ -3874,36 +3877,6 @@ public class Notenik
     windowMenuManager.hide(progressWindow);
     selectPositionAndDisplay(initialSelection);
   }
-
-  /**
-    Handle GUI events, including the firing of various timers.
-
-    @param event The GUI event that fired the action.
-   */
-  /*
-  public void actionPerformed (ActionEvent event) {
-    Object source = event.getSource();
-
-    // URL Validation Timer
-    if (source == validateURLTimer) {
-      if (progressDialog.isCanceled()) {
-        URLValidator validator;
-        for (int i = 0; i < urlValidators.size(); i++) {
-          validator = (URLValidator)urlValidators.get(i);
-          if (! validator.isValidationComplete()) {
-            Logger.getShared().recordEvent (new LogEvent (LogEvent.MEDIUM,
-                "URL Validation incomplete for "
-                + validator.toString(),
-                false));
-            validator.interrupt();
-          }
-        } // end for each page being validated
-        validateURLAllDone();
-      }
-    }
-
-  } // end method
-  */
 
   public File getCurrentDirectory () {
     return currentDirectory;
