@@ -2,7 +2,7 @@ Title:  Backup Your Collections
 
 Seq:    11.6
 
-Tags:   File.Backup, Options.Preferences.Files
+Tags:   Cmd.B, File.Backup, Options.Preferences.Files
 
 Body:   
  
@@ -18,4 +18,5 @@ Additionally, on the Files tab of the Notenik preferences, you can specify wheth
 
 
 [zip]: https://en.wikipedia.org/wiki/Zip_(file_format)
+
 

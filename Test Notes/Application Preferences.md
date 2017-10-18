@@ -2,7 +2,7 @@ Title:  Application Preferences
 
 Seq:    11.2
 
-Tags:   Cmd.semicolon, Options.Preferences
+Tags:   Cmd.comma, Options.Preferences
 
 Body:   
  
@@ -21,6 +21,5 @@ The Notenik General preferences contain a number of options for modifying the pr
 **Software Updates: Check Automatically?**: Check the box to have Notenik check for newer versions whenever it launches.
 
 **Check Now**: Click this button to check for a new version immediately.
-
 
 

@@ -203,6 +203,7 @@ public class Notenik
   private             MenuItem                htmlToFileMenuItem;
   
   private             Menu                editMenu        = new Menu("Edit");
+  private             MenuItem              undoEditsMenuItem;
   
   private             Menu                toolsMenu       = new Menu("Tools");
   private             MenuItem              toolsOptionsMenuItem;
@@ -713,6 +714,7 @@ public class Notenik
               AlertType.ERROR);
         }
       });
+    FXUtils.assignShortcut(fileBackupMenuItem, "B");
     fileMenu.getItems().add(fileBackupMenuItem);
     
     fxUtils.addSeparator(fileMenu);
@@ -874,7 +876,13 @@ public class Notenik
     // Delete Note Menu Item
     deleteNoteMenuItem = new MenuItem("Delete Note");
     deleteNoteMenuItem.setOnAction(e -> removeNote());
+    FXUtils.assignShortcut(deleteNoteMenuItem, "D");
     noteMenu.getItems().add(deleteNoteMenuItem);
+    
+    undoEditsMenuItem = new MenuItem("Undo Edits");
+    FXUtils.assignShortcut(undoEditsMenuItem, "Z");
+    undoEditsMenuItem.setOnAction(e -> undoEdits());
+    noteMenu.getItems().add(undoEditsMenuItem);
     
     fxUtils.addSeparator(noteMenu);
     
@@ -950,6 +958,12 @@ public class Notenik
     htmlToFileMenuItem.setOnAction(e -> genHTMLtoFile());
     htmlMenu.getItems().add(htmlToFileMenuItem);
     
+    //
+    // Build the Edit Menu
+    //
+    
+
+    
     // 
     // Build the Tools Menu
     //
@@ -970,6 +984,12 @@ public class Notenik
     toolsLinkTweakerMenuItem.setOnAction(e -> invokeLinkTweaker());
     toolsMenu.getItems().add(toolsLinkTweakerMenuItem);
     
+  }
+  
+  private void undoEdits() {
+    if (model.isOpen() && model.hasSelection()) {
+      displaySelectedNote();
+    }
   }
   
   private void purgeMenuItemActionPerformed() {                                              
@@ -2256,6 +2276,7 @@ public class Notenik
       boolean checkTags,
       boolean checkBody) {
     
+    modInProgress = true;
     boolean replaced = false;
     if (foundNote != null 
         && foundNote.equals(model.getSelection())) {
@@ -2293,6 +2314,7 @@ public class Notenik
         statusBar.setStatus("Replacement made");
       }
     }
+    modInProgress = false;
     return replaced;
   }
   
@@ -3747,7 +3769,14 @@ public class Notenik
   }
   
   private void invokeLinkTweaker() {
-    displayAuxiliaryWindow(linkTweaker);
+    String linkText = editPane.getLink();
+    if (linkText != null
+        && linkText.length() > 0
+        && linkTweaker != null
+        && linkTweaker instanceof WindowToManage) {
+      linkTweaker.setLink(linkText, "Link");
+      WindowMenuManager.getShared().makeVisible(linkTweaker);
+    }
   }
   
   /**

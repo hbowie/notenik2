@@ -16,4 +16,6 @@ Use the '-' (minus) sign on the Toolbar to delete the currently selected Note.
 
 Click on the OK button on the Toolbar, or click on the Display tab, to complete and save your latest entries on the Edit tab. 
 
+The Note Menu also has equivalent commands, with keyboard shortcuts, to add a New Note, Delete a Note, or to Undo Edits. Use the Undo Edits item before saving your entries, to undo any changes you've made on the Edit tab. 
+
 
