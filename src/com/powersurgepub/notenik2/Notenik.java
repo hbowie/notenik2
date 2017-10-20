@@ -204,6 +204,9 @@ public class Notenik
   
   private             Menu                editMenu        = new Menu("Edit");
   private             MenuItem              undoEditsMenuItem;
+  private             MenuItem              cutMenuItem = new MenuItem();
+  private             MenuItem              copyMenuItem = new MenuItem();
+  private             MenuItem              pasteMenuItem = new MenuItem();
   
   private             Menu                toolsMenu       = new Menu("Tools");
   private             MenuItem              toolsOptionsMenuItem;
@@ -360,6 +363,14 @@ public class Notenik
   // Transferable        clipContents = null;
   
   private             TextMergeHarness    textMerge = null;
+  
+  // Work Items for Cut, Copy and Paste operations
+  private             Object              objWithFocus;
+  private             TextInputControl    textIn;
+  private             Note                noteToCopy;
+  private             String              selectedText;
+  private             Clipboard           clipboard;
+  private             boolean             hasTransferableText;
   
   @Override
   public void start(Stage primaryStage) {
@@ -962,7 +973,22 @@ public class Notenik
     // Build the Edit Menu
     //
     
+    // Cut Menu Item
+    cutMenuItem = new MenuItem("Cut");
+    cutMenuItem.setOnAction(e -> cut());
+    editMenu.getItems().add(cutMenuItem);
+    
+    // Copy Menu Item
+    copyMenuItem = new MenuItem("Copy");
+    copyMenuItem.setOnAction(e -> copy());
+    editMenu.getItems().add(copyMenuItem);
+    
+    // Paste Menu Item
+    pasteMenuItem = new MenuItem("Paste");
+    pasteMenuItem.setOnAction(e -> paste());
+    editMenu.getItems().add(pasteMenuItem);
 
+    editMenu.setOnShowing(e -> setCutCopyPaste());
     
     // 
     // Build the Tools Menu
@@ -986,10 +1012,167 @@ public class Notenik
     
   }
   
+  /**
+   Edit Menu about to be shown, figure out which items to disable.
+  */
+  private void setCutCopyPaste() {
+    
+    prepCutCopyPaste();
+    
+    // Now let's see if a cut would be valid
+    if (textIn != null && selectedText.length() > 0) {
+      cutMenuItem.setDisable(false);
+    } else {
+      cutMenuItem.setDisable(true);
+    }
+
+    // Now let's see if a copy would be valid
+    
+    copyMenuItem.setDisable(true);
+    if (textIn != null && selectedText.length() > 0) {
+      copyMenuItem.setDisable(false);
+    }
+    else
+    if (noteToCopy != null) {
+      copyMenuItem.setDisable(false);
+    }
+    
+    // Now let's see if a paste would be valid
+    pasteMenuItem.setDisable(false);
+    if (! model.isOpen()) {
+      pasteMenuItem.setDisable(true);
+    }
+  }
+  
+  private void cut() {
+    prepCutCopyPaste();
+    if (objWithFocus instanceof TextInputControl) {
+      textIn.cut();
+    }
+  }
+  
+  private void copy() {
+    prepCutCopyPaste();
+    if (objWithFocus instanceof TextInputControl) {
+      textIn.copy();
+    } else {
+      copyNote();
+    }
+  }
+  
+  private void paste() {
+    prepCutCopyPaste();
+    if (objWithFocus instanceof TextInputControl) {
+      textIn.paste();
+    } else {
+      pasteNote();
+    }
+    
+  }
+  
   private void undoEdits() {
     if (model.isOpen() && model.hasSelection()) {
       displaySelectedNote();
     }
+  }
+  
+  /**
+   Copy the current newNote to the system clipboard. 
+   */
+  private void copyNote() {
+    boolean noNoteSelected = true;
+    if (model.hasSelection()) {
+      Note note = model.getSelection();
+      if (note != null) {
+        noNoteSelected = false;
+        TextLineWriter writer = new ClipboardMaker();
+        model.save(note, writer);
+      }
+    }
+    
+    if (noNoteSelected) {
+      trouble.report ("Select a Note before trying to copy it", 
+          "No Note Selected");
+    } 
+  }
+  
+  /**
+   Paste note from clipboard. 
+  */
+  private void pasteNote() {
+
+    boolean ok = false;
+    boolean modOK = false;
+    if (modInProgress) {
+      System.out.println("Notenik.pasteNote mod in progress = " 
+          + String.valueOf(modInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+    Note newNote = null;
+    if (modOK) {
+      ok = true;
+      String noteText = "";
+      TextLineReader reader = new ClipboardReader();
+      newNote = model.getNote(reader);
+      if (newNote == null 
+          || (! newNote.hasTitle()) 
+          || (! newNote.hasUniqueKey())
+          || (newNote.getTitle().length() == 0)) {
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      String newFileName = newNote.getFileName();
+        if (model.exists(newFileName)) {
+          trouble.report (primaryStage, 
+            "A Note already exists with the same What field",
+            "Duplicate Found");
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      newNote.setLastModDateToday();
+      model.add(newNote);
+      model.select(newNote);
+      positionAndDisplaySelection();
+    }
+    
+    if (! ok) {
+      trouble.report ("Trouble pasting new note from Clipboard",
+          "Clipboard Error");
+    }
+    
+  }
+  
+  /**
+   Prepare for possible cut, copy or paste operation.
+  */
+  private void prepCutCopyPaste() {
+
+    objWithFocus = primaryScene.focusOwnerProperty().get();
+    textIn = null;
+    noteToCopy = null;
+    selectedText = "";
+    if (objWithFocus instanceof TextInputControl) {
+      textIn = (TextInputControl)objWithFocus;
+      if (textIn != null
+          && textIn.getSelectedText() != null) {
+        selectedText = textIn.getSelectedText();
+      }
+    }
+    else
+    if (objWithFocus instanceof TableView
+        || objWithFocus instanceof TreeView) {
+      if (model.isOpen() && model.hasSelection()) {
+        noteToCopy = model.getSelection();
+      }
+    }
+    clipboard = Clipboard.getSystemClipboard();
+    hasTransferableText = ((clipboard != null) 
+        && clipboard.hasString());
   }
   
   private void purgeMenuItemActionPerformed() {                                              
@@ -4058,77 +4241,6 @@ public class Notenik
   private void noValidExportDestination() {
     Trouble.getShared().report ("No valid export destination specified",
         "Export Aborted");
-  }
-  
-  /**
-   Copy the current newNote to the system clipboard. 
-   */
-  private void copyNote() {
-    boolean noNoteSelected = true;
-    if (model.hasSelection()) {
-      Note note = model.getSelection();
-      if (note != null) {
-        noNoteSelected = false;
-        TextLineWriter writer = new ClipboardMaker();
-        model.save(note, writer);
-      }
-    }
-    
-    if (noNoteSelected) {
-      trouble.report ("Select a Note before trying to copy it", 
-          "No Note Selected");
-    } 
-  }
-  
-  /**
-   Paste note from clipboard. 
-  */
-  private void pasteNote() {
-
-    boolean ok = false;
-    boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.pasteNote mod in progress = " 
-          + String.valueOf(modInProgress));
-    } else {
-      modOK = modIfChanged();
-    }
-    Note newNote = null;
-    if (modOK) {
-      ok = true;
-      String noteText = "";
-      TextLineReader reader = new ClipboardReader();
-      newNote = model.getNote(reader);
-      if (newNote == null 
-          || (! newNote.hasTitle()) 
-          || (! newNote.hasUniqueKey())
-          || (newNote.getTitle().length() == 0)) {
-        ok = false;
-      }
-    }
-    
-    if (ok) {
-      String newFileName = newNote.getFileName();
-        if (model.exists(newFileName)) {
-          trouble.report (primaryStage, 
-            "A Note already exists with the same What field",
-            "Duplicate Found");
-        ok = false;
-      }
-    }
-    
-    if (ok) {
-      newNote.setLastModDateToday();
-      model.add(newNote);
-      model.select(newNote);
-      positionAndDisplaySelection();
-    }
-    
-    if (! ok) {
-      trouble.report ("Trouble pasting new note from Clipboard",
-          "Clipboard Error");
-    }
-    
   }
   
   public void genHTMLtoClipboard() {
