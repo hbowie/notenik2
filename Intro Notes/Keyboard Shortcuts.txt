@@ -10,10 +10,12 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 
 * B - Backup
 * C - Copy
+* D - Delete Note
 * E - Open Essential Collection
 * F - Find
 * G - Get File Info
 * H - Hide Notenik
+* I - Increment Date or Seq
 * K - Close Note
 * L - Link Tweaker
 * M - Open Master Collection
@@ -35,4 +37,3 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * , - Notenik Preferences
 * [ - Prior Note
 * ]  - Next Note
-* Del - Delete Note

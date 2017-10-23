@@ -196,11 +196,14 @@ public class Notenik
   private             MenuItem              closeNoteMenuItem;
   private             MenuItem              getFileInfoMenuItem;
   private             MenuItem              incrementSeqMenuItem;
+  private             MenuItem              incrementDateMenuItem;
   private             MenuItem              copyNoteMenuItem;
   private             MenuItem              pasteNoteMenuItem;
   private             Menu                  htmlMenu;
   private             MenuItem                htmlToClipboardMenuItem;
   private             MenuItem                htmlToFileMenuItem;
+  
+  private             KeyCombination        incKC;
   
   private             Menu                editMenu        = new Menu("Edit");
   private             MenuItem              undoEditsMenuItem;
@@ -943,6 +946,11 @@ public class Notenik
     incrementSeqMenuItem.setOnAction(e -> incrementSeq());
     noteMenu.getItems().add(incrementSeqMenuItem);
     
+    //Increment Date Menu Item
+    incrementDateMenuItem = new MenuItem("Increment Date");
+    incrementDateMenuItem.setOnAction(e -> incrementDate());
+    noteMenu.getItems().add(incrementDateMenuItem);
+    
     fxUtils.addSeparator(noteMenu);
     
     // Copy Note Menu Item
@@ -968,6 +976,8 @@ public class Notenik
     htmlToFileMenuItem = new MenuItem("Save to File");
     htmlToFileMenuItem.setOnAction(e -> genHTMLtoFile());
     htmlMenu.getItems().add(htmlToFileMenuItem);
+    
+    incKC = new KeyCodeCombination(KeyCode.I, KeyCombination.SHORTCUT_DOWN);
     
     //
     // Build the Edit Menu
@@ -1368,6 +1378,43 @@ public class Notenik
     BorderPane.setMargin(treeButtonsPane, new Insets(10));
     
     tagsTab.setContent(treePane);
+    
+    boolean hasDate = model.getRecDef().contains(NoteParms.DATE_FIELD_NAME);
+    boolean hasSeq = model.getRecDef().contains(NoteParms.SEQ_FIELD_NAME);
+    int sortParm = model.getSortParm().getParm();
+    boolean seqSort = (sortParm == NoteSortParm.SORT_BY_SEQ_AND_TITLE);
+    boolean dateSort = (sortParm == NoteSortParm.SORT_TASKS_BY_DATE);
+    int incField = 0;
+    if (hasDate && (! hasSeq)) {
+      incField = 1;
+    }
+    else
+    if (hasSeq && (! hasDate)) {
+      incField = 2;
+    }
+    else
+    if (seqSort) {
+      incField = 2;
+    }
+    else
+    if (dateSort) {
+      incField = 1;
+    } 
+    else
+    if (hasDate && hasSeq) {
+      incField = 1;
+    }
+    
+    incrementDateMenuItem.setAccelerator(null);
+    incrementSeqMenuItem.setAccelerator(null);
+    
+    if (incField == 1) {
+      incrementDateMenuItem.setAccelerator(incKC);
+    }
+    else
+    if (incField == 2) {
+      incrementSeqMenuItem.setAccelerator(incKC);
+    }
   }
 
   /**
@@ -3416,6 +3463,29 @@ public class Notenik
         }
       } // end if any modifications were made without problems
     } // End if we have a good note selection to start with
+  }
+  
+  private void incrementDate() {
+    if (! model.hasSelection()) {
+      PSOptionPane.showMessageDialog(primaryStage,
+          "First select a Note before Incrementing a Date",
+          "Selection Error",
+          javax.swing.JOptionPane.WARNING_MESSAGE);
+    } else {
+      boolean modOK = false;
+      if (modInProgress) {
+        System.out.println("incrementDate with modInProgress");
+      } else {
+        modOK = modIfChanged();
+      }
+      if (modOK) {
+        String startingTitle = model.getSelection().getTitle();
+        String newDate = model.incrementDate();
+        editPane.setDate(newDate);
+        Note noteToSelect = model.getFromTitle(startingTitle);
+        selectPositionAndDisplay(noteToSelect);
+      }
+    }
   }
   
   /**
