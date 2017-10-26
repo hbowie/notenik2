@@ -20,15 +20,15 @@ mkdir -p dist/appfolder
 jdk=$(/usr/libexec/java_home)
 $jdk/bin/javapackager -version
 $jdk/bin/javapackager -deploy \
-	-native dmg \
+	-native image \
 	-srcdir dist \
-    -srcfiles notenik.jar \
+    -srcfiles notenik2.jar \
     -srcfiles lib \
     -srcfiles appfolder \
-    -appclass com.powersurgepub.notenik.Notenik \
+    -appclass com.powersurgepub.notenik2.Notenik \
     -name Notenik \
     -title "Note taking app" \
-    -BappVersion=3.00 \
+    -BappVersion=4.00 \
     -outdir deploy \
     -outfile notenik \
     -v
