@@ -16,6 +16,7 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * G - Get File Info
 * H - Hide Notenik
 * I - Increment Date or Seq
+* J - Jump to Last Collection
 * K - Close Note
 * L - Link Tweaker
 * M - Open Master Collection
@@ -37,3 +38,5 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * , - Notenik Preferences
 * [ - Prior Note
 * ]  - Next Note
+
+

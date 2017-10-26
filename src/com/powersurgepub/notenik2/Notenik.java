@@ -149,6 +149,7 @@ public class Notenik
   private             Menu                fileMenu        = new Menu("File");
   private             MenuItem              openMenuItem;
   private             Menu                  openRecentMenu;
+  private             MenuItem              jumpMenuItem;
   private             MenuItem              openEssentialMenuItem;
   private             MenuItem              openMasterCollectionMenuItem;
   private             MenuItem              createMasterCollectionMenuItem;
@@ -617,6 +618,12 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(openEssentialMenuItem);
+    
+    // Jump to Last Collection Menu Item
+    jumpMenuItem = new MenuItem("Jump to Last Collection");
+    FXUtils.assignShortcut(jumpMenuItem, "J");
+    jumpMenuItem.setOnAction(e -> jumpToLastCollection());
+    fileMenu.getItems().add(jumpMenuItem);
     
     // Open Recent Menu Item
     openRecentMenu = new Menu("Open Recent");
@@ -1476,6 +1483,74 @@ public class Notenik
               errMsg,
               "Master Collection Open Error");
         }
+    } // end if mod ok
+  }
+  
+  /**
+   Open the last collection opened. 
+  */
+  private void jumpToLastCollection() {
+    boolean modOK = false;
+    if (modInProgress) {
+      System.out.println("Notenik.jumpToLastCollection mod in progress = " 
+          + String.valueOf(modInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+    if (modOK) {
+      RecentFiles recentFiles = model.getMaster().getRecentFiles();
+      boolean found = false;
+      int i = 0;
+      FileSpec jumpSpec = null;
+      FileSpec currentSpec = model.getFileSpec();
+      FileSpec masterSpec = null;
+      if (model.getMaster().hasMasterCollection()) {
+        File masterFile = model.getMaster().getMasterCollectionFolder();
+        masterSpec = model.getMaster().getFileSpec(masterFile);
+      }
+      
+      while (i < recentFiles.size() && (! found)) {
+        jumpSpec = recentFiles.get(i);
+        if (jumpSpec.equals(currentSpec)
+            || jumpSpec.equals(masterSpec)) {
+          i++;
+        } else {
+          found = true;
+        }
+      }
+
+      if (found 
+          && jumpSpec != null 
+          && NoteCollectionModel.goodFolder(jumpSpec.getFolder())) {
+        closeFile();
+        openFile (jumpSpec, false);
+      } // end if we have a good collection to jump to
+    } // end if mod ok
+  }
+  
+  /** 
+   Open the collection so important that the user has deemed it to be
+   "Essential". 
+  */
+  private void openEssentialCollection() {
+    boolean modOK = false;
+    if (modInProgress) {
+      System.out.println("Notenik.openEssentialCollection mod in progress = " 
+          + String.valueOf(modInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+    if (modOK) {
+      if (filePrefs.hasEssentialFilePath()) {
+        File selectedFile = new File(filePrefs.getEssentialFilePath());
+        if (NoteCollectionModel.goodFolder(selectedFile)) {
+          closeFile();
+          openFile (selectedFile);
+        } else {
+          trouble.report ("Trouble opening file " + selectedFile.toString(),
+              "File Open Error");
+        }
+      } // end if we have an essential file path
     } // end if mod ok
   }
   
@@ -3914,32 +3989,6 @@ public class Notenik
       } // end if user selected a file
     } // end if mods ok
   } // end method userNewFile
-  
-  /** 
-   Open the collection so important that the user has deemed it to be
-   "Essential". 
-  */
-  public void openEssentialCollection() {
-    boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.openEssentialCollection mod in progress = " 
-          + String.valueOf(modInProgress));
-    } else {
-      modOK = modIfChanged();
-    }
-    if (modOK) {
-      if (filePrefs.hasEssentialFilePath()) {
-        File selectedFile = new File(filePrefs.getEssentialFilePath());
-        if (NoteCollectionModel.goodFolder(selectedFile)) {
-          closeFile();
-          openFile (selectedFile);
-        } else {
-          trouble.report ("Trouble opening file " + selectedFile.toString(),
-              "File Open Error");
-        }
-      } // end if we have an essential file path
-    } // end if mod ok
-  }
   
   /**
    Generate a template file containing all supported note fields. 
