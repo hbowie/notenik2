@@ -1,6 +1,6 @@
 Title:  Sync Multiple Collections to a Common Folder
 
-Seq:    33
+Seq:    34
 
 Tags:   folders, nvalt, sync
 

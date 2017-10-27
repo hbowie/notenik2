@@ -1,6 +1,6 @@
 Title:  Tables, Rows and Columns
 
-Seq:    27
+Seq:    28
 
 Tags:   columns, PSTextMerge, rows, table
 

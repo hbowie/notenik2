@@ -28,6 +28,10 @@ Following is a sample Note file, showing all of the Fields that Notenik treats a
 
     Index:  Index Term 1;
 
+    Code: 
+
+    A block of programming code
+
     Teaser:
 
     A brief sample of the note

@@ -313,6 +313,13 @@ public class DisplayPane {
     appendParagraph("", 0, "", label, value);
   }
   
+  public void displayCode(String label, String value) {
+     appendParagraph("", 0, "", label, "");
+     webPane.append("<pre><code>");
+     webPane.append(value);
+     webPane.append("</code></pre>");
+  }
+  
   public void displayLink(String label, String value, String link) {
     String val = value;
     if (val.length() == 0) {
@@ -350,7 +357,10 @@ public class DisplayPane {
     
     startParagraph (specialTag, fontVariance, label);
 
-    appendItem (href, body, 0, 1);
+    if ((href != null && href.length() > 0)
+        || (body != null && body.length() > 0)) {
+      appendItem (href, body, 0, 1);
+    }
     
     endParagraph();
   }

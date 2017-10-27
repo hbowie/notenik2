@@ -1,6 +1,6 @@
 Title:  Keeping Track of Your Collections
 
-Seq:    34
+Seq:    35
 
 Tags:   collection, master
 
@@ -34,4 +34,5 @@ The Link field for each Note in the Master Collection contains a link to the fol
 The Title field for each Collection is initially formed from the words found in the name of the folder for the collection (as well as some of its parent folders, if there is room). This is the same field used to identify each Collection in the Open Recent menu. Modify the Title of a Collection here, and henceforth that shall be the way that Collection is identified on the Open Recent menu. 
 
 If you'd like Notenik to forget about a Collection, then you can delete it from the Master Collection, and that will be the last you will see of it. 
+
 

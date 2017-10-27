@@ -77,7 +77,7 @@ public class Notenik
       TagsChangeAgent {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.00";
+  public static final String PROGRAM_VERSION = "4.10";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -203,6 +203,7 @@ public class Notenik
   private             Menu                  htmlMenu;
   private             MenuItem                htmlToClipboardMenuItem;
   private             MenuItem                htmlToFileMenuItem;
+  private             MenuItem              copyCodeMenuItem;
   
   private             KeyCombination        incKC;
   
@@ -970,6 +971,12 @@ public class Notenik
     pasteNoteMenuItem.setOnAction(e -> pasteNote());
     noteMenu.getItems().add(pasteNoteMenuItem);
     
+    // Copy Code Menu Item
+    copyCodeMenuItem = new MenuItem("Copy Code");
+    FXUtils.assignShortcut(copyCodeMenuItem, "Y");
+    copyCodeMenuItem.setOnAction(e -> copyCode());
+    noteMenu.getItems().add(copyCodeMenuItem);
+    
     // Gen HTML Menu
     htmlMenu = new Menu("Gen HTML");
     noteMenu.getItems().add(htmlMenu);
@@ -1090,6 +1097,29 @@ public class Notenik
   private void undoEdits() {
     if (model.isOpen() && model.hasSelection()) {
       displaySelectedNote();
+    }
+  }
+  
+  private void copyCode() {
+    if (model.isOpen()
+        && model.hasSelection()) {
+      boolean ok = false;
+      boolean modOK = false;
+      if (modInProgress) {
+        System.out.println("Notenik.copyCode mod in progress = " 
+            + String.valueOf(modInProgress));
+      } else {
+        modOK = modIfChanged();
+      }
+
+      if (modOK) {
+        if (model.getSelection().hasCode()) {
+          clipboard = Clipboard.getSystemClipboard();
+          ClipboardContent content = new ClipboardContent();
+          content.putString(model.getSelection().getCode());
+          clipboard.setContent(content);
+        }
+      }
     }
   }
   
@@ -1621,6 +1651,7 @@ public class Notenik
         DataFieldDefinition fieldDef = model.getRecDef().getDef(i);
         String fieldName = fieldDef.getProperName();
         DataWidget widget = editPane.get(i);
+        DataField nextField = model.getSelection().getField(i);
         if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
           // Ignore -- already handled above
         }
@@ -1636,8 +1667,11 @@ public class Notenik
         if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
           // Ignore -- handled below
         } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.CODE_FIELD_NAME)) {
+          displayPane.displayCode(fieldName, nextField.getData());
+        }
         else {
-          DataField nextField = model.getSelection().getField(i);
           displayPane.displayField(fieldName, nextField.getData());
         }
 
@@ -2001,6 +2035,12 @@ public class Notenik
             model.getSelection().setDate(newDate);
             modified = true;
           }
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.CODE_FIELD_NAME)) {
+          String code = widget.getText();
+          model.getSelection().setCode(code);
+          modified = true;
         }
         else {
           DataField nextField = model.getSelection().getField(i);

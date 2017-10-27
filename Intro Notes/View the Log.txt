@@ -1,6 +1,6 @@
 Title:  View the Log
 
-Seq:    35
+Seq:    36
 
 Tags:   log, problems, window
 
