@@ -155,7 +155,6 @@ public class Notenik
   private             MenuItem              createMasterCollectionMenuItem;
   private             MenuItem              openHelpNotesMenuItem;
   private             MenuItem              fileNewMenuItem;
-  private             MenuItem              generateTemplateMenuItem;
   private             MenuItem              fileSaveMenuItem;
   private             MenuItem              saveAllMenuItem;
   private             MenuItem              fileSaveAsMenuItem;
@@ -179,6 +178,7 @@ public class Notenik
   
   private             Menu                collectionMenu  = new Menu("Collection");
   private             MenuItem              collectionPrefsMenuItem;
+  private             MenuItem              collectionTemplateMenuItem;
   private             MenuItem              findMenuItem;
   private             MenuItem              replaceMenuItem;
   private             MenuItem              addReplaceTagsMenuItem;
@@ -677,16 +677,6 @@ public class Notenik
     });
     fileMenu.getItems().add(fileNewMenuItem);
     
-    // Generate Template Menu Item
-    generateTemplateMenuItem = new MenuItem("Generate Template...");
-    generateTemplateMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-      @Override
-      public void handle(ActionEvent evt) {
-        generateTemplate();
-      }
-    });
-    fileMenu.getItems().add(generateTemplateMenuItem);
-    
     fxUtils.addSeparator(fileMenu);
     
     // Save Menu Item
@@ -839,6 +829,11 @@ public class Notenik
     collectionPrefsMenuItem = new MenuItem("Collection Preferences");
     collectionPrefsMenuItem.setOnAction(e -> displayAuxiliaryWindow(collectionPrefs));
     collectionMenu.getItems().add(collectionPrefsMenuItem);
+    
+    // Collection Template Menu Item
+    collectionTemplateMenuItem = new MenuItem("Collection Template");
+    collectionTemplateMenuItem.setOnAction(e -> editTemplate());
+    collectionMenu.getItems().add(collectionTemplateMenuItem);
     
     fxUtils.addSeparator(collectionMenu);
     
@@ -1220,6 +1215,13 @@ public class Notenik
     clipboard = Clipboard.getSystemClipboard();
     hasTransferableText = ((clipboard != null) 
         && clipboard.hasString());
+  }
+  
+  private void editTemplate() {
+    if (model.isOpen()) {
+      model.getTemplate().showAndWait();
+      reloadFile();
+    }
   }
   
   private void purgeMenuItemActionPerformed() {                                              
@@ -3298,6 +3300,9 @@ public class Notenik
     }
   }
   
+  /**
+   Reload the current file from disk and recreate the UI. 
+  */
   private void reloadFile() {
     if (model.isOpen()) {
       boolean modOK = false;
@@ -3363,7 +3368,8 @@ public class Notenik
   */
   private void openFile (FileSpec fileToOpen, boolean taggedOnly) {
     
-    model.open(fileToOpen, taggedOnly);
+    model.openStart(fileToOpen, taggedOnly);
+    model.openFinish();
     newCollection();
   }
   
@@ -3721,7 +3727,8 @@ public class Notenik
   private void preImport() {
     closeFile();
     FileSpec fileSpec = model.getFileSpec();
-    model.open(fileSpec, false);
+    model.openStart(fileSpec, false);
+    model.openFinish();
   }
   
   /**
@@ -4021,7 +4028,14 @@ public class Notenik
       if (selectedFile != null) {
         if (NoteCollectionModel.goodFolder(selectedFile)) {
           closeFile();
-          openFile(selectedFile);
+          FileSpec fileSpec = new FileSpec(selectedFile);
+          model.openStart(fileSpec, false);
+          model.getTemplate().showAndWait();
+          savePrefs();
+          publishWindow.closeSource();
+          model.close();
+          noteDisplayed = false;
+          openFile(fileSpec, false);
         } else {
           trouble.report ("Trouble opening new file " + selectedFile.toString(),
               "New File Open Error");
@@ -4029,24 +4043,6 @@ public class Notenik
       } // end if user selected a file
     } // end if mods ok
   } // end method userNewFile
-  
-  /**
-   Generate a template file containing all supported note fields. 
-  */
-  public void generateTemplate() {
- 
-    dirChooser.setTitle ("Select Folder for Note Template");
-    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
-      dirChooser.setInitialDirectory (currentDirectory);
-    }
-    if (model.isOpen()) {
-      dirChooser.setInitialDirectory(model.getFolder().getParentFile());
-    }
-    File selectedFile = dirChooser.showDialog (primaryStage);
-    if(selectedFile != null) {
-      model.generateTemplate(selectedFile); 
-    }
-  }
   
   /**
    Save the current collection of Notes to the specified file. 
