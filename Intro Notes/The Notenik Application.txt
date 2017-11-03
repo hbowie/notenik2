@@ -20,7 +20,7 @@ If you see a message saying you need Java, then you can visit [Java.com](http://
 
 If you'd like to learn more about Notenik, then it's probably best to download the application now and get it launched, so that you can follow along with the examples given below. 
 
-* [Notenik macOS application version 4.10](http://www.notenik.net/Notenik-4.10.dmg)
+* [Notenik macOS application version 4.11](http://www.notenik.net/Notenik-4.11.dmg)
 * [PowerSurge Publishing Omni Pack](http://www.powersurgepub.com/downloads/pspub-omni-pack.zip)
 
 From this point on, I'll introduce one concept at a time. 

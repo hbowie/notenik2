@@ -320,7 +320,7 @@ public class DisplayPane {
      webPane.append("</code></pre>");
   }
   
-  public void displayLink(String label, String value, String link) {
+  public void displayLink(WebLauncher launcher, String label, String value, String link) {
     String val = value;
     if (val.length() == 0) {
       if (link.startsWith("http://")) {
@@ -338,7 +338,11 @@ public class DisplayPane {
       }
     }
     appendParagraph ("", 0, link, label, val);
-    webPane.setLaunchLink(link);
+    if (launcher == null) {
+      webPane.setLaunchLink(link);
+    } else {
+      webPane.setLauncher(link, "Open Collection", launcher);
+    }
   }
   
   public void displayLabelOnly(

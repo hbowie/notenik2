@@ -28,7 +28,7 @@ $jdk/bin/javapackager -deploy \
     -appclass com.powersurgepub.notenik2.Notenik \
     -name Notenik \
     -title "Note taking app" \
-    -BappVersion=4.10 \
+    -BappVersion=4.11 \
     -outdir deploy \
     -outfile notenik \
     -v

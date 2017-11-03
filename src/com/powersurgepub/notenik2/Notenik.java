@@ -74,10 +74,11 @@ public class Notenik
       NoteCollectionView,
       PublishAssistant,
       ScriptExecutor,
-      TagsChangeAgent {
+      TagsChangeAgent,
+      WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.10";
+  public static final String PROGRAM_VERSION = "4.11";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -1642,10 +1643,19 @@ public class Notenik
     displayPane.displayTitle(model.getSelection().getTitle());
     
     if (model.getSelection().hasLink()) {
-      displayPane.displayLink(
+      if (model.editingMasterCollection()) {
+        displayPane.displayLink(
+          this,
           NoteParms.LINK_FIELD_NAME, 
           "", 
           model.getSelection().getLinkAsString());
+      } else {
+        displayPane.displayLink(
+          null,
+          NoteParms.LINK_FIELD_NAME, 
+          "", 
+          model.getSelection().getLinkAsString());
+      }
     }
     
     if (editPane.getNumberOfFields() == model.getNumberOfFields()) {
@@ -1653,7 +1663,8 @@ public class Notenik
         DataFieldDefinition fieldDef = model.getRecDef().getDef(i);
         String fieldName = fieldDef.getProperName();
         DataWidget widget = editPane.get(i);
-        DataField nextField = model.getSelection().getField(i);
+        // DataField nextField = model.getSelection().getField(i);
+        DataField nextField = model.getSelection().getField(i, fieldName);
         if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
           // Ignore -- already handled above
         }
@@ -2929,7 +2940,7 @@ public class Notenik
           widget.setText(model.getSelection().getBody());
         } 
         else {
-          DataField nextField = model.getSelection().getField(i);
+          DataField nextField = model.getSelection().getField(i, fieldName);
           widget.setText(nextField.getData());
         }
 
@@ -3284,6 +3295,10 @@ public class Notenik
     } else {
       openURL (editPane.getLink());
     }
+  }
+  
+  public void launchButtonPressed(String link) {
+    launchButtonClicked();
   }
   
   private void openCollectionFromCurrentNote () {
