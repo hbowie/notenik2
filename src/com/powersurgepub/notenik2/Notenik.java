@@ -78,7 +78,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.11";
+  public static final String PROGRAM_VERSION = "4.12";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -129,7 +129,7 @@ public class Notenik
   // private             String              tagsDisplayed = "";
   // private             NotePositioned      position = null;
   private             boolean             modified = false;
-  private             boolean             modInProgress = false;
+  private             boolean             opInProgress = false;
   private             boolean             unsavedChanges = false;
   private             int                 listPosition = 0;
   private             String              lastGoodTitle = "";
@@ -1101,9 +1101,9 @@ public class Notenik
         && model.hasSelection()) {
       boolean ok = false;
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.copyCode mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.copyCode operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -1146,9 +1146,9 @@ public class Notenik
 
     boolean ok = false;
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.pasteNote mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.pasteNote operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -1491,9 +1491,9 @@ public class Notenik
   
   private void openMasterCollection() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.OpenMasterCollection mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.OpenMasterCollection operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -1524,9 +1524,9 @@ public class Notenik
   */
   private void jumpToLastCollection() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.jumpToLastCollection mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.jumpToLastCollection operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -1567,9 +1567,9 @@ public class Notenik
   */
   private void openEssentialCollection() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.openEssentialCollection mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.openEssentialCollection operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -1604,9 +1604,9 @@ public class Notenik
   
   public void handleOpenFile (FileSpec fileSpec) {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.handleOpenFile mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.handleOpenFile operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -1869,9 +1869,9 @@ public class Notenik
     
     if (model.isOpen()) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.promptForBackup mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.promptForBackup operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -1915,7 +1915,7 @@ public class Notenik
    */
   private boolean modIfChanged () {
     
-    modInProgress = true;
+    opInProgress = true;
     boolean modOK = true;
     
     if (model.isOpen() 
@@ -1972,7 +1972,7 @@ public class Notenik
       } // end if modified
     }
     modified = false;
-    modInProgress = false;
+    opInProgress = false;
     return modOK;
   } // end modIfChanged method
   
@@ -2089,9 +2089,9 @@ public class Notenik
     }
     
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.newNote mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.newNote operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2121,9 +2121,9 @@ public class Notenik
   public void duplicateNote() {
 
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.duplicateNote mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.duplicateNote operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2160,7 +2160,7 @@ public class Notenik
       }
       if (okToDelete) {
         noFindInProgress();
-        modInProgress = true;
+        opInProgress = true;
         String nextTitle = model.nextTitle();
         boolean deleted = model.removeSelection();
         if (deleted) {
@@ -2171,16 +2171,16 @@ public class Notenik
               "Trouble deleting note titled " + titleToDelete, 
               "Delete Problem");
         }
-        modInProgress = false;
+        opInProgress = false;
       } // end if user confirmed delete
     } // end if new URL not yet saved
   } // end method removeNote
 
   private void checkTags() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.checkTags mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.checkTags operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2202,9 +2202,9 @@ public class Notenik
   public void changeAllTags (String from, String to) {
 
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.changeAllTags mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.changeAllTags operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2237,9 +2237,9 @@ public class Notenik
   private void flattenTags() {
     
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.flattenTags mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.flattenTags operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2272,9 +2272,9 @@ public class Notenik
   private void lowerCaseTags() {
     
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.lowerCaseTags mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.lowerCaseTags operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2448,9 +2448,9 @@ public class Notenik
       boolean showDialogAtEnd) {
         
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.findNote mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.findNote operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -2634,7 +2634,7 @@ public class Notenik
       boolean checkTags,
       boolean checkBody) {
     
-    modInProgress = true;
+    opInProgress = true;
     boolean replaced = false;
     if (foundNote != null 
         && foundNote.equals(model.getSelection())) {
@@ -2672,7 +2672,7 @@ public class Notenik
         statusBar.setStatus("Replacement made");
       }
     }
-    modInProgress = false;
+    opInProgress = false;
     return replaced;
   }
   
@@ -2693,9 +2693,9 @@ public class Notenik
     if (model.isOpen()) {
       if (model.hasSelection()) {
         ok = false;
-        if (modInProgress) {
-          System.out.println("Notenik.firstNote mod in progress = " 
-              + String.valueOf(modInProgress));
+        if (opInProgress) {
+          System.out.println("Notenik.firstNote operation in progress = " 
+              + String.valueOf(opInProgress));
         } else {
           ok = modIfChanged();
         }
@@ -2717,9 +2717,9 @@ public class Notenik
     if (model.isOpen()) {
       if (model.hasSelection()) {
         ok = false;
-        if (modInProgress) {
-          System.out.println("Notenik.priorNote mod in progress = " 
-              + String.valueOf(modInProgress));
+        if (opInProgress) {
+          System.out.println("Notenik.priorNote operation in progress = " 
+              + String.valueOf(opInProgress));
         } else {
           ok = modIfChanged();
         }
@@ -2742,9 +2742,9 @@ public class Notenik
     if (model.isOpen()) {
       if (model.hasSelection()) {
         ok = false;
-        if (modInProgress) {
-          System.out.println("Notenik.nextNote in progress = " 
-              + String.valueOf(modInProgress));
+        if (opInProgress) {
+          System.out.println("Notenik.nextNote operation in progress = " 
+              + String.valueOf(opInProgress));
         } else {
           ok = modIfChanged();
         }
@@ -2766,9 +2766,9 @@ public class Notenik
     if (model.isOpen()) {
       if (model.hasSelection()) {
         ok = false;
-        if (modInProgress) {
-          System.out.println("Notenik.lastNote mod in progress = " 
-              + String.valueOf(modInProgress));
+        if (opInProgress) {
+          System.out.println("Notenik.lastNote operation in progress = " 
+              + String.valueOf(opInProgress));
         } else {
           ok = modIfChanged();
         }
@@ -2813,6 +2813,7 @@ public class Notenik
   */
   private void position(Note noteToSelect) {
     
+    opInProgress = true;
     // Let's try to select the note within the TableView
     SortedNote sortedNote = model.getSortedNote(noteToSelect);
     if (sortedNote != null) {
@@ -2828,7 +2829,7 @@ public class Notenik
       noteTree.getSelectionModel().clearSelection();
       noteTree.getSelectionModel().select(firstNode);
     }
-    
+    opInProgress = false;
   }
 
   /**
@@ -2841,9 +2842,9 @@ public class Notenik
         && selectedRow < model.sortedSize()
         && selectedNote != null) {
       boolean modOK = false;
-      if (modInProgress) {
+      if (opInProgress) {
         // System.out.println("Notenik.tableRowSelected mod in linksChecked = " 
-        //     + String.valueOf(modInProgress));
+        //     + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -2873,9 +2874,9 @@ public class Notenik
       TagsNodeValue nodeValue = node.getValue();
       if (nodeValue.getNodeType() == TagsNodeValue.ITEM) {
         boolean modOK = false;
-        if (modInProgress) {
-          // System.out.println("Notenik.treeNodeSelected mod in linksChecked = " 
-          //     + String.valueOf(modInProgress));
+        if (opInProgress) {
+          // System.out.println("Notenik.treeNodeSelected operation in progress = " 
+          //   + String.valueOf(opInProgress));
         } else {
           modOK = modIfChanged();
         }
@@ -2992,9 +2993,9 @@ public class Notenik
         && model.hasSelection()
         && displayTab != null) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.doneEditing mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.doneEditing operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -3086,9 +3087,9 @@ public class Notenik
   */
   private void openNote() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.tableRowSelected mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.tableRowSelected operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -3191,9 +3192,9 @@ public class Notenik
   public void handleQuit() {
 
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.handleQuit mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.handleQuit operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -3238,9 +3239,9 @@ public class Notenik
    */
   private void userOpenFile() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.userOpenFile mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.userOpenFile operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -3270,9 +3271,9 @@ public class Notenik
   private void openHelpNotes() {
 
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.openHelpNotes mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.openHelpNotes operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -3321,9 +3322,9 @@ public class Notenik
   private void reloadFile() {
     if (model.isOpen()) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.reloadFile mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.reloadFile operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -3342,9 +3343,9 @@ public class Notenik
     
     if (model.isOpen()) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.reloadTaggedOnly mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.reloadTaggedOnly operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -3423,9 +3424,9 @@ public class Notenik
   private void purge() {
     
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.purge mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.purge operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -3560,9 +3561,9 @@ public class Notenik
 
     if (model.isOpen() && model.hasSelection()) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("Notenik.closeNote mod in progress = " 
-            + String.valueOf(modInProgress));
+      if (opInProgress) {
+        System.out.println("Notenik.closeNote operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
@@ -3589,38 +3590,51 @@ public class Notenik
           // newNote.setStatus(ItemStatusConfig.getShared().getClosedString());
         }
         if (closeMods) {
-          if (modInProgress) {
-            System.out.println("Notenik.closeNote with closeMods mod in progress = " 
-              + String.valueOf(modInProgress));
+          if (opInProgress) {
+            System.out.println("Notenik.closeNote with closeMods operation in progress = " 
+              + String.valueOf(opInProgress));
           } else {
             modIfChanged();
-            positionSelection();
+            positionAndDisplaySelection();
           }
         }
       } // end if any modifications were made without problems
     } // End if we have a good note selection to start with
   }
   
+  /**
+   Bump the date up by one day. 
+  */
   private void incrementDate() {
-    if (! model.hasSelection()) {
-      PSOptionPane.showMessageDialog(primaryStage,
-          "First select a Note before Incrementing a Date",
-          "Selection Error",
-          javax.swing.JOptionPane.WARNING_MESSAGE);
-    } else {
+    
+    if (model.isOpen() 
+        && model.hasSelection()
+        && model.getSelection().hasDate()) {
       boolean modOK = false;
-      if (modInProgress) {
-        System.out.println("incrementDate with modInProgress");
+      if (opInProgress) {
+        System.out.println("Notenik.incrementDate with operation in progress = " 
+            + String.valueOf(opInProgress));
       } else {
         modOK = modIfChanged();
       }
       if (modOK) {
-        String startingTitle = model.getSelection().getTitle();
-        String newDate = model.incrementDate();
+        Note note = model.getSelection();
+        StringDate date = note.getDate();
+        String newDate = date.increment();
         editPane.setDate(newDate);
-        Note noteToSelect = model.getFromTitle(startingTitle);
-        selectPositionAndDisplay(noteToSelect);
-      }
+        if (opInProgress) {
+          System.out.println("Notenik.incrementDate with mods but operation in progress = " 
+            + String.valueOf(opInProgress));
+        } else {
+          modIfChanged();
+          positionAndDisplaySelection();
+        }
+      } // end if any modifications were made without problems
+    } else {
+      PSOptionPane.showMessageDialog(primaryStage,
+          "First select a Note with a Date before Incrementing a Date",
+          "Selection Error",
+          javax.swing.JOptionPane.WARNING_MESSAGE);
     }
   }
   
@@ -3644,7 +3658,7 @@ public class Notenik
           javax.swing.JOptionPane.WARNING_MESSAGE);
     } else {
       boolean modOK = false;
-      if (modInProgress) {
+      if (opInProgress) {
         System.out.println("incrementSeq with modInProgress");
       } else {
         modOK = modIfChanged();
@@ -3759,9 +3773,9 @@ public class Notenik
   private void importMacAppInfo() {
     
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.importMacAppInfo mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.importMacAppInfo operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -4004,9 +4018,9 @@ public class Notenik
    */
   private void userSaveFileAs () {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.userSaveFileAs mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.userSaveFileAs operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -4028,9 +4042,9 @@ public class Notenik
   */
   public void userNewFile() {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.userNewFile mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.userNewFile operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -4176,9 +4190,9 @@ public class Notenik
   public void validateURLs () {
 
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.validateURLs mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.validateURLs operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
@@ -4298,9 +4312,9 @@ public class Notenik
   
   private void generalExport(int exportType) {
     boolean modOK = false;
-    if (modInProgress) {
-      System.out.println("Notenik.generalExport mod in progress = " 
-          + String.valueOf(modInProgress));
+    if (opInProgress) {
+      System.out.println("Notenik.generalExport operation in progress = " 
+          + String.valueOf(opInProgress));
     } else {
       modOK = modIfChanged();
     }
