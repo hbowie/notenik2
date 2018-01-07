@@ -78,7 +78,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.12";
+  public static final String PROGRAM_VERSION = "4.20";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -1177,10 +1177,12 @@ public class Notenik
     }
     
     if (ok) {
+      opInProgress = true;
       newNote.setLastModDateToday();
       model.add(newNote);
       model.select(newNote);
       positionAndDisplaySelection();
+      opInProgress = false;
     }
     
     if (! ok) {
@@ -1681,6 +1683,25 @@ public class Notenik
           // Ignore -- handled below
         } 
         else
+        if (fieldName.equalsIgnoreCase(NoteParms.AUTHOR_FIELD_NAME)
+            || fieldName.equalsIgnoreCase(NoteParms.AUTHOR_INFO)
+            || fieldName.equalsIgnoreCase(NoteParms.AUTHOR_LINK)) {
+          // Ignore -- handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.WORK_TITLE)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_TYPE)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_MINOR_TITLE)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_PAGE_NUMBERS)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_IDENTIFIER)
+            || fieldName.equals(NoteParms.WORK_LINK)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_RIGHTS)
+            || fieldName.equalsIgnoreCase(NoteParms.WORK_RIGHTS_HOLDER)
+            || fieldName.equalsIgnoreCase(NoteParms.PUBLISHER)
+            || fieldName.equalsIgnoreCase(NoteParms.PUBLISHER_CITY)) {
+          // Ignore -- handled above
+        }
+        else
         if (fieldName.equalsIgnoreCase(NoteParms.CODE_FIELD_NAME)) {
           displayPane.displayCode(fieldName, nextField.getData());
         }
@@ -1697,6 +1718,71 @@ public class Notenik
 
       displayPane.displayDivider();
     
+    }
+    
+    if (model.getSelection().hasAuthor()) {
+      Author author = model.getSelection().getAuthor();
+      String authorInfo 
+          = model.getSelection().getFieldData(NoteParms.AUTHOR_INFO);
+      if (authorInfo != null && authorInfo.length() > 0) {
+        author.setAuthorInfo(authorInfo);
+      }
+      String authorLink 
+          = model.getSelection().getFieldData(NoteParms.AUTHOR_LINK);
+      if (authorLink != null && authorLink.length() > 0) {
+        author.setLink(authorLink);
+      }
+      displayPane.displayAuthor(author);
+    }
+    
+    String workTitle = model.getSelection().getFieldData(NoteParms.WORK_TITLE);
+    if (workTitle != null && workTitle.length() > 0) {
+      WisdomSource source = new WisdomSource(workTitle);
+      Note wisdom = model.getSelection();
+      
+      String workType = wisdom.getFieldData(NoteParms.WORK_TYPE);
+      if (workType != null && workType.length() > 0) {
+        source.setType(workType);
+      }
+      
+      String workMinorTitle = wisdom.getFieldData(NoteParms.WORK_MINOR_TITLE);
+      if (workMinorTitle != null && workMinorTitle.length() > 0) {
+        source.setMinorTitle(workMinorTitle);
+      }
+      
+      String workID = wisdom.getFieldData(NoteParms.WORK_IDENTIFIER);
+      if (workID != null && workID.length() > 0) {
+        source.setID(workID);
+      }
+      
+      String workLink = wisdom.getFieldData(NoteParms.WORK_LINK);
+      if (workLink != null && workLink.length() > 0) {
+        source.setLink(workLink);
+      }
+      
+      String workRights = wisdom.getFieldData(NoteParms.WORK_RIGHTS);
+      if (workRights != null && workRights.length() > 0) {
+        source.setRights(workRights);
+      }
+      
+      String workRightsHolder = wisdom.getFieldData(NoteParms.WORK_RIGHTS_HOLDER);
+      if (workRightsHolder != null && workRightsHolder.length() > 0) {
+        source.setRightsOwner(workRightsHolder);
+      }
+      
+      String publisher = wisdom.getFieldData(NoteParms.PUBLISHER);
+      if (publisher != null && publisher.length() > 0) {
+        source.setPublisher(publisher);
+      }
+      
+      String pubCity = wisdom.getFieldData(NoteParms.PUBLISHER_CITY);
+      if (pubCity != null && pubCity.length() > 0) {
+        source.setCity(pubCity);
+      }
+      
+      String pages = wisdom.getFieldData(NoteParms.WORK_PAGE_NUMBERS);
+      
+      displayPane.displaySource(source, pages);
     }
     
     displayPane.displayDateAdded(model.getSelection().getLastModDateStandard());
