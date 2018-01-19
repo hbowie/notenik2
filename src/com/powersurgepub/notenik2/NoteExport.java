@@ -156,7 +156,7 @@ public class NoteExport {
       int exportType,
       String selectTagsStr,
       String suppressTagsStr) {
-    
+
     int exported = 0;
 
     NoteIO exportWriter = null;
@@ -167,7 +167,6 @@ public class NoteExport {
     // Retrieve modTags preferences
     Tags selectTags = new Tags(selectTagsStr);
     Tags suppressTags = new Tags(suppressTagsStr);
-
 
     // Open the output and get things started
     boolean ok = true;
@@ -229,11 +228,11 @@ public class NoteExport {
           boolean tagSelected = workNote.getTags().anyTagFound(selectTags);
           if (tagSelected) {
             Note exportNote = new Note(workNote);
-            String cleansedTagsStr;
             Tags modTags = new Tags(exportNote.getTagsAsString());
             if (suppressTagsStr != null
                 && suppressTagsStr.length() > 0) {
-              exportNote.setTags(modTags.suppress(suppressTags)); 
+              String cleansedTags = modTags.suppress(suppressTags);
+              exportNote.setTags(cleansedTags);
             }
 
             try {
@@ -270,7 +269,7 @@ public class NoteExport {
                   break;
                 case TABDELIM_EXPORT:
                 default:
-                  tabs.nextRecordOut(workNote);
+                  tabs.nextRecordOut(exportNote);
                   break;
               } // end switch for output routine
               exported++;
