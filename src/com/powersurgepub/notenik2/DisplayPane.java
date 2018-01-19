@@ -60,8 +60,6 @@ public class DisplayPane {
   
   /**
     Prepares the tab for processing of newly opened file.
-   
-    @param store Disk Store object for the file.
    */
   public void filePrep () {
     // No file information used on the About Tab
@@ -153,7 +151,7 @@ public class DisplayPane {
   /**
    Display source of text, if any. 
   
-   @param source The source of the text. 
+   @param sourceObj The source of the text.
   */
   public void displaySource(WisdomSource sourceObj, String pages) {
     // Display Source, if any
@@ -175,9 +173,9 @@ public class DisplayPane {
 
       if (source.length() > 0 
           && (! source.equalsIgnoreCase (WisdomSource.UNKNOWN))) {
-        webPane.appendLine("<cite>");
+        webPane.append("<cite>");
         appendItem (url, source, 0, 1);
-        webPane.appendLine("</cite>");
+        webPane.append("</cite>");
         if (minorTitle.length() > 0) {
           webPane.append(", ");
         }
@@ -310,7 +308,9 @@ public class DisplayPane {
   }
   
   public void displayField(String label, String value) {
-    appendParagraph("", 0, "", label, value);
+    if (value != null && value.length() > 0) {
+      appendParagraph("", 0, "", label, value);
+    }
   }
   
   public void displayCode(String label, String value) {

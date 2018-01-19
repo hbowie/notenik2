@@ -1638,6 +1638,11 @@ public class Notenik
   private void buildDisplayTab() {
     
     displayPane.startDisplay();
+
+    String workTitle = model.getSelection().getFieldData(NoteParms.WORK_TITLE);
+    String workRights = model.getSelection().getFieldData(NoteParms.WORK_RIGHTS);
+    String workRightsHolder = model.getSelection().getFieldData(NoteParms.WORK_RIGHTS_HOLDER);
+
     if (model.getSelection().hasTags()) {
       displayPane.displayTags(model.getSelection().getTags());
     }
@@ -1659,7 +1664,8 @@ public class Notenik
           model.getSelection().getLinkAsString());
       }
     }
-    
+
+    int fieldsDisplayed = 0;
     if (editPane.getNumberOfFields() == model.getNumberOfFields()) {
       for (int i = 0; i < model.getNumberOfFields(); i++) {
         DataFieldDefinition fieldDef = model.getRecDef().getDef(i);
@@ -1699,20 +1705,32 @@ public class Notenik
             || fieldName.equalsIgnoreCase(NoteParms.WORK_RIGHTS_HOLDER)
             || fieldName.equalsIgnoreCase(NoteParms.PUBLISHER)
             || fieldName.equalsIgnoreCase(NoteParms.PUBLISHER_CITY)) {
-          // Ignore -- handled above
+          // Ignore -- handled below
         }
         else
         if (fieldName.equalsIgnoreCase(NoteParms.CODE_FIELD_NAME)) {
           displayPane.displayCode(fieldName, nextField.getData());
         }
+        else
+          if (fieldName.equalsIgnoreCase(NoteParms.DATE_ADDED_FIELD_NAME)) {
+          // Ignore -- handled below
+          }
+        else
+          if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)
+            && (workTitle != null && workTitle.length() > 0)) {
+              // Ignore -- handled below
+          }
         else {
           displayPane.displayField(fieldName, nextField.getData());
+          fieldsDisplayed++;
         }
 
       } // end for each data field
     
       if (model.getSelection().hasBody()) {
-        displayPane.displayLabelOnly("Body");
+        if (fieldsDisplayed > 0) {
+          displayPane.displayLabelOnly("Body");
+        }
         displayPane.displayBody(model.getSelection().getBody());
       }
 
@@ -1734,8 +1752,7 @@ public class Notenik
       }
       displayPane.displayAuthor(author);
     }
-    
-    String workTitle = model.getSelection().getFieldData(NoteParms.WORK_TITLE);
+
     if (workTitle != null && workTitle.length() > 0) {
       WisdomSource source = new WisdomSource(workTitle);
       Note wisdom = model.getSelection();
@@ -1760,12 +1777,10 @@ public class Notenik
         source.setLink(workLink);
       }
       
-      String workRights = wisdom.getFieldData(NoteParms.WORK_RIGHTS);
       if (workRights != null && workRights.length() > 0) {
         source.setRights(workRights);
       }
       
-      String workRightsHolder = wisdom.getFieldData(NoteParms.WORK_RIGHTS_HOLDER);
       if (workRightsHolder != null && workRightsHolder.length() > 0) {
         source.setRightsOwner(workRightsHolder);
       }
@@ -1779,13 +1794,21 @@ public class Notenik
       if (pubCity != null && pubCity.length() > 0) {
         source.setCity(pubCity);
       }
+
+      if (wisdom.hasDate()) {
+        source.setYear(wisdom.getDateAsString());
+      }
       
       String pages = wisdom.getFieldData(NoteParms.WORK_PAGE_NUMBERS);
       
       displayPane.displaySource(source, pages);
+
+      if (source.hasRights() || source.hasRightsOwner() || source.hasYear()) {
+        displayPane.displayRights(source.getRights(), source.getYear(), source.getRightsOwner());
+      }
     }
     
-    displayPane.displayDateAdded(model.getSelection().getLastModDateStandard());
+    displayPane.displayDateAdded(model.getSelection().getDateAddedAsString());
     
     displayPane.finishDisplay();
   }
