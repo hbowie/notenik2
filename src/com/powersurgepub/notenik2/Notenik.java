@@ -51,7 +51,6 @@ package com.powersurgepub.notenik2;
   import javafx.scene.control.Alert.*;
   import javafx.scene.control.ButtonBar.*;
   import javafx.scene.control.TableView.*;
-  import javafx.scene.control.Skin.*;
   import javafx.scene.input.*;
   import javafx.scene.layout.*;
   import javafx.stage.*;
@@ -1639,7 +1638,7 @@ public class Notenik
     
     displayPane.startDisplay();
 
-    String workTitle = model.getSelection().getFieldData(NoteParms.WORK_TITLE);
+    String workTitle = model.getSelection().getFieldData(NoteParms.WORK_TITLE_FIELD_NAME);
     String workRights = model.getSelection().getFieldData(NoteParms.WORK_RIGHTS);
     String workRightsHolder = model.getSelection().getFieldData(NoteParms.WORK_RIGHTS_HOLDER);
 
@@ -1695,7 +1694,7 @@ public class Notenik
           // Ignore -- handled above
         }
         else
-        if (fieldName.equalsIgnoreCase(NoteParms.WORK_TITLE)
+        if (fieldName.equalsIgnoreCase(NoteParms.WORK_TITLE_FIELD_NAME)
             || fieldName.equalsIgnoreCase(NoteParms.WORK_TYPE)
             || fieldName.equalsIgnoreCase(NoteParms.WORK_MINOR_TITLE)
             || fieldName.equalsIgnoreCase(NoteParms.WORK_PAGE_NUMBERS)
@@ -1754,7 +1753,7 @@ public class Notenik
     }
 
     if (workTitle != null && workTitle.length() > 0) {
-      WisdomSource source = new WisdomSource(workTitle);
+      Work source = new Work(workTitle);
       Note wisdom = model.getSelection();
       
       String workType = wisdom.getFieldData(NoteParms.WORK_TYPE);

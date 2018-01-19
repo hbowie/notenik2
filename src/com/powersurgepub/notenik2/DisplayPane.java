@@ -16,8 +16,6 @@
 
 package com.powersurgepub.notenik2;
 
-  import com.powersurgepub.psutils2.basic.*;
-  import com.powersurgepub.psutils2.markup.*;
   import com.powersurgepub.psutils2.strings.*;
   import com.powersurgepub.psutils2.tags.*;
   import com.powersurgepub.psutils2.ui.*;
@@ -26,7 +24,6 @@ package com.powersurgepub.notenik2;
   import java.text.*;
 
   import javafx.scene.layout.*;
-  import javafx.scene.web.*;
 
 /**
  A panel to display a single note.
@@ -153,7 +150,7 @@ public class DisplayPane {
   
    @param sourceObj The source of the text.
   */
-  public void displaySource(WisdomSource sourceObj, String pages) {
+  public void displaySource(Work sourceObj, String pages) {
     // Display Source, if any
 
     String sourceType = sourceObj.getTypeLabel();
@@ -161,18 +158,18 @@ public class DisplayPane {
     String url = sourceObj.getALink();
     String minorTitle = sourceObj.getMinorTitle();
     if ((source.length() > 0 
-          && (! source.equalsIgnoreCase (WisdomSource.UNKNOWN)))
+          && (! source.equalsIgnoreCase (Work.UNKNOWN)))
         || (minorTitle.length() > 0)) {
 
       startParagraph ("", 0, "Source");
 
       if (sourceType.length() > 0
-          && (! sourceType.equalsIgnoreCase(WisdomSource.UNKNOWN))) {
+          && (! sourceType.equalsIgnoreCase(Work.UNKNOWN))) {
         webPane.append ("the " + sourceObj.getTypeLabel().toLowerCase() + ", ");
       }
 
       if (source.length() > 0 
-          && (! source.equalsIgnoreCase (WisdomSource.UNKNOWN))) {
+          && (! source.equalsIgnoreCase (Work.UNKNOWN))) {
         webPane.append("<cite>");
         appendItem (url, source, 0, 1);
         webPane.append("</cite>");

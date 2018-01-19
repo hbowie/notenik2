@@ -47,6 +47,7 @@ public class EditPane {
   private             DataWidget          linkWidget = null;
   private             TextSelector        tagsTextSelector = null;
   private             TextSelector        authorTextSelector = null;
+  private             TextSelector        workTitleTextSelector = null;
   private             DataWidget          statusWidget = null;
   private             DateWidget          dateWidget = null;
   private             DataWidget          recursWidget = null;
@@ -105,6 +106,11 @@ public class EditPane {
           authorTextSelector.setValueList(model.getAuthorList());
           authorTextSelector.setHandlesMultipleValues(false);
           break;
+        case (DataFieldDefinition.WORK_TYPE):
+          workTitleTextSelector = (TextSelector)widgetWithLabel.getWidget();
+          workTitleTextSelector.setValueList(model.getWorkList());
+          workTitleTextSelector.setHandlesMultipleValues(false);
+          break;
         case (DataFieldDefinition.LINK_TYPE):
           linkWidget = widgetWithLabel.getWidget();
           linkLabel = (LinkLabel)widgetWithLabel.getLabel();
@@ -143,6 +149,10 @@ public class EditPane {
 
     if (authorTextSelector != null) {
       authorTextSelector.setValueList(model.getAuthorList());
+    }
+
+    if (workTitleTextSelector != null) {
+      workTitleTextSelector.setValueList(model.getWorkList());
     }
     
     lastModDateLabel = new Label();
@@ -269,6 +279,18 @@ public class EditPane {
 
   public TextSelector getAuthorTextSelector() {
     return authorTextSelector;
+  }
+
+  public boolean hasWorkTitle() {
+    return (workTitleTextSelector != null);
+  }
+
+  public void setWorkTitle(String workTitle) {
+    workTitleTextSelector.setText(workTitle);
+  }
+
+  public TextSelector getWorkTitleTextSelector() {
+    return workTitleTextSelector;
   }
   
   public int getNumberOfFields() {
