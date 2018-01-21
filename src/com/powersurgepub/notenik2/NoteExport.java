@@ -34,6 +34,8 @@ package com.powersurgepub.notenik2;
 
   import java.io.*;
   import java.util.*;
+
+  import com.powersurgepub.psutils2.values.Work;
   import javafx.scene.control.*;
   import org.xml.sax.*;
 
@@ -163,6 +165,8 @@ public class NoteExport {
     TabDelimFile tabs = null;
     MarkupWriter xmlWriter = null;
     Note workNote;
+    RecordDefinition exportRecDef = new RecordDefinition(recDef);
+    exportRecDef.copyDefs(recDef);
 
     // Retrieve modTags preferences
     Tags selectTags = new Tags(selectTagsStr);
@@ -170,6 +174,8 @@ public class NoteExport {
 
     // Open the output and get things started
     boolean ok = true;
+    boolean authorIncluded = false;
+    boolean workIncluded = false;
     switch (exportType) {
 
       case NOTENIK_EXPORT:
@@ -211,8 +217,19 @@ public class NoteExport {
       default:
 
         tabs = new TabDelimFile(exportFile);
+        if (recDef.contains(NoteParms.AUTHOR_FIELD_NAME)) {
+          authorIncluded = true;
+          exportRecDef.addColumn(NoteParms.AUTHOR_LAST_NAME_FIRST);
+          exportRecDef.addColumn(NoteParms.AUTHOR_FILE_NAME);
+          exportRecDef.addColumn(NoteParms.AUTHOR_WIKIMEDIA_PAGE);
+        }
+        if (recDef.contains(NoteParms.WORK_TITLE_FIELD_NAME)) {
+          workIncluded = true;
+          exportRecDef.addColumn(NoteParms.WORK_HTML_LINE);
+          exportRecDef.addColumn(NoteParms.WORK_RIGHTS_HTML_LINE);
+        }
         try {
-          tabs.openForOutput(recDef);
+          tabs.openForOutput(exportRecDef);
         } catch (IOException e) {
           ok = false;
           exported = -1;
@@ -269,7 +286,23 @@ public class NoteExport {
                   break;
                 case TABDELIM_EXPORT:
                 default:
-                  tabs.nextRecordOut(exportNote);
+                  DataRecord exportRec = new DataRecord();
+                  exportRec.copyFields(exportRecDef, exportNote);
+                  if (authorIncluded) {
+                    exportRec.storeField(exportRecDef, NoteParms.AUTHOR_LAST_NAME_FIRST,
+                        exportNote.getAuthorLastNameFirst());
+                    exportRec.storeField(exportRecDef, NoteParms.AUTHOR_FILE_NAME,
+                        exportNote.getAuthor().getFileName());
+                    exportRec.storeField(exportRecDef, NoteParms.AUTHOR_WIKIMEDIA_PAGE,
+                        exportNote.getAuthor().getWikiMediaPage());
+                  }
+                  if (workIncluded) {
+                    Work work = workNote.getWork();
+                    String pages = exportNote.getFieldData(NoteParms.WORK_PAGE_NUMBERS);
+                    exportRec.storeField(exportRecDef, NoteParms.WORK_HTML_LINE, work.getHTMLLine(pages));
+                    exportRec.storeField(exportRecDef, NoteParms.WORK_RIGHTS_HTML_LINE, work.getRightsLine());
+                  }
+                  tabs.nextRecordOut(exportRec);
                   break;
               } // end switch for output routine
               exported++;
@@ -653,10 +686,10 @@ public class NoteExport {
   /**
    Create an HTML file containing all the bookmarks tagged with "Favorites".
 
-   @param file The output file to be written.
-   @param notes The collection of URLs containing the favorites.
-   @param favoritesColumns The number of columns to use on the Favorites page.
-   @param favoritesRows The maximum number of rows to print per column.
+   @param publishTo The output file to be written.
+   @param model     The model providing the bookmarks/notes.
+   @param favoritesPrefs The user's preferences for publishing favorites.
+
    @return True if everything went ok and the file was written successfully,
            false if i/o errors writing the file, or if no favorites were found.
    */
