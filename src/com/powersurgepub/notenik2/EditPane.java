@@ -20,7 +20,8 @@ package com.powersurgepub.notenik2;
 	import com.powersurgepub.psutils2.notenik.*;
 	import com.powersurgepub.psutils2.records.*;
 	import com.powersurgepub.psutils2.ui.*;
-	import com.powersurgepub.psutils2.widgets.*;
+  import com.powersurgepub.psutils2.values.Work;
+  import com.powersurgepub.psutils2.widgets.*;
 
   import java.util.*;
 
@@ -48,6 +49,7 @@ public class EditPane {
   private             TextSelector        tagsTextSelector = null;
   private             TextSelector        authorTextSelector = null;
   private             TextSelector        workTitleTextSelector = null;
+  private             TextSelector        workTypeTextSelector = null;
   private             DataWidget          statusWidget = null;
   private             DateWidget          dateWidget = null;
   private             DataWidget          recursWidget = null;
@@ -110,6 +112,13 @@ public class EditPane {
           workTitleTextSelector = (TextSelector)widgetWithLabel.getWidget();
           workTitleTextSelector.setValueList(model.getWorkList());
           workTitleTextSelector.setHandlesMultipleValues(false);
+          break;
+        case (DataFieldDefinition.PICK_FROM_LIST):
+          if (fieldDef.getCommonName().equals(NoteParms.WORK_TYPE_COMMON_NAME)) {
+            workTypeTextSelector = (TextSelector)widgetWithLabel.getWidget();
+            workTypeTextSelector.setValueList(Work.getWorkTypeValueList());
+            workTypeTextSelector.setHandlesMultipleValues(false);
+          }
           break;
         case (DataFieldDefinition.LINK_TYPE):
           linkWidget = widgetWithLabel.getWidget();
