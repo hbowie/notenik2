@@ -2166,7 +2166,7 @@ public class Notenik
         else {
           DataField nextField = model.getSelection().getField(i);
           if (! widget.getText().equals(nextField.getData())) {
-            model.getSelection().storeField(fieldName, widget.getText());
+            model.getSelection().setField(fieldName, widget.getText());
             modified = true;
           } // end if generic field has been changed
         } // end if generic field
