@@ -185,6 +185,7 @@ public class Notenik
   private             MenuItem              flattenTagsMenuItem;
   private             MenuItem              lowerCaseTagsMenuItem;
   private             MenuItem              validateURLsMenuItem;
+  private             MenuItem              catchUpDailyMenuItem;
   
   private             Menu                sortMenu        = new Menu("Sort");
   
@@ -876,6 +877,13 @@ public class Notenik
     validateURLsMenuItem = new MenuItem("Validate Links...");
     validateURLsMenuItem.setOnAction(e -> validateURLs());
     collectionMenu.getItems().add(validateURLsMenuItem);
+
+    fxUtils.addSeparator(collectionMenu);
+
+    // Catch Up Daily Tasks Menu Item
+    catchUpDailyMenuItem = new MenuItem("Catch Up Daily Tasks");
+    catchUpDailyMenuItem.setOnAction(e -> catchUpDailyTasks());
+    collectionMenu.getItems().add(catchUpDailyMenuItem);
     
     
     //
@@ -4184,7 +4192,7 @@ public class Notenik
   /**
    Save the current collection of Notes to the specified file. 
   
-   @param asFile The file to save the noteList to.  
+   @param toFolder The folder to which the collection should be saved. .
   */
   private void saveFileAs(File toFolder) {
     if (model.isOpen()) {
@@ -4368,6 +4376,90 @@ public class Notenik
 
     }
   } // end validateURLs method
+
+  /**
+    Look for daily tasks with dates before today, and update them to show today's date.
+   */
+  private void catchUpDailyTasks() {
+
+    boolean modOK = false;
+    if (opInProgress) {
+      System.out.println("Notenik.catchUpDailyTasks operation in progress = "
+          + String.valueOf(opInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+
+    if (modOK) {
+
+      initialSelection = model.getSelection();
+      opInProgress = true;
+
+      // Go through sorted items looking for Web Pages
+      // Build a list of URL validator tasks
+      Note workNote;
+      String todayYMD = StringDate.getTodayYMD();
+      int mods = 0;
+      for (
+          int workIndex = model.firstNote();
+          workIndex >= 0 && workIndex < model.size();
+          workIndex = model.nextNote(workIndex)) {
+
+        workNote = model.get(workIndex);
+
+        if (workNote.hasDate() && workNote.hasRecurs()) {
+          RecursValue workRecurs = workNote.getRecurs();
+          if (workRecurs.getUnit() == RecursValue.DAYS && workRecurs.getInterval() == 1) {
+            StringDate workDate = new StringDate();
+            workDate.set(workNote.getDateAsString());
+            String workYMD = workDate.getYMD();
+            if (workYMD.length() == 10) {
+              int comparison = workYMD.compareTo(todayYMD);
+              int bumps = 0;
+              String newDate = "";
+              while (comparison < 0) {
+                newDate = workDate.increment();
+                bumps++;
+                workDate.set(newDate);
+                workYMD = workDate.getYMD();
+                comparison = workYMD.compareTo(todayYMD);
+              } // end while task date is still less than today
+              if (bumps > 0) {
+                mods++;
+                model.select(workIndex);
+                workNote = model.getSelection();
+                workNote.setDate(workYMD);
+                model.modifySelection();
+
+                /*
+                if (model.getSelection().getTitle().equals(workNote.getTitle())) {
+                  workNote.setDate(workYMD);
+                  model.modifySelection();
+                  editPane.setDate(newDate);
+                } else {
+                  String priorTitle = workNote.getTitle();
+                  String priorSortKey = workNote.getSortKey(model.getSortParm());
+                  String priorTags = workNote.getTagsAsString();
+                  workNote.setDate(workYMD);
+                  model.modify(workNote, priorTitle, priorSortKey, priorTags);
+                } */
+              } // end if we had a date update to make
+            } // end if we have a full yyyy-mm-dd date
+          } // end if we have a daily task
+        } // end if this note has a data and a recurs field
+      } // end of for loop
+      opInProgress = false;
+      selectPositionAndDisplay(initialSelection);
+
+      Alert alert = new Alert(AlertType.INFORMATION);
+      alert.setTitle("Daily Catch-Up Results");
+      alert.setHeaderText(null);
+      alert.setContentText(String.valueOf (mods)
+          + " Past Due Daily Tasks Made Due Today");
+      alert.showAndWait();
+    } // end if mod ok
+
+  } // end of method catchUpDailyTasks
   
   /**
    Make an update to a note whose tags have been modified. 
