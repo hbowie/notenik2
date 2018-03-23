@@ -1,0 +1,18 @@
+Title:  The unique title for this note
+
+Type:   The type of note
+
+Tags:   One or more tags, separated by commas
+
+Link:   http://anyurl.com
+
+Date Added: 2018-01-25 17:04:10
+
+Code:   
+ 
+A block of programming code
+
+Body:   
+ 
+The body of the note
+

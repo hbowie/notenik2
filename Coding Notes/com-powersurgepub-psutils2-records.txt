@@ -1,0 +1,10 @@
+Title:  com.powersurgepub.psutils2.records
+
+Type:   package
+
+Tags:   com.powersurgepub.psutils2.records
+
+Body:   
+ 
+A collection of classes defining records/rows and fields/columns. 
+

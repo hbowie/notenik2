@@ -1,0 +1,10 @@
+Title:  com.powersurgepub.notenik2
+
+Type:   package
+
+Tags:   com.powersurgepub.notenik2
+
+Body:   
+ 
+The components needed to create a desktop application for storing, organizing and viewing notes. 
+

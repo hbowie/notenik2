@@ -1,0 +1,10 @@
+Title:  DataFactory
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.records
+
+Body:   
+ 
+A class containing factory methods to create values and widgets for various types of fields. 
+

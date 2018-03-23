@@ -1,0 +1,10 @@
+Title:  com.powersurgepub.psutils2.notenik
+
+Type:   package
+
+Tags:   com.powersurgepub.psutils2.notenik
+
+Body:   
+ 
+A collection of classes for dealing with notes. 
+

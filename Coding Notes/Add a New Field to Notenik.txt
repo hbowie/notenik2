@@ -1,0 +1,27 @@
+Title:  Add a New Field to Notenik
+
+Type:   Guide
+
+Tags:   Guides
+
+Date Added: 2018-01-15 13:30:36
+
+Body:   
+ 
+Steps to add a new field to Notenik:
+
+1. Figure out which DataValue class you should use. Create a new one if needed. 
+
+2. Add the new field type to DataFieldDefinition, if needed.
+
+3. Add the new field to NoteParms. 
+
+4. Add the new field to DataFactory.
+
+5. Add the new field to Note.
+
+6. Add the field to Notenik.
+
+7. Add the field to NoteLine.
+
+

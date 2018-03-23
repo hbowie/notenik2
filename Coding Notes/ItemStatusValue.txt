@@ -1,0 +1,10 @@
+Title:  ItemStatusValue
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.values
+
+Body:   
+ 
+Each value consists of a label String and a flag indicating whether the value is available for use. 
+

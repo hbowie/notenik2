@@ -159,6 +159,7 @@ public class Notenik
   private             MenuItem              saveAllMenuItem;
   private             MenuItem              fileSaveAsMenuItem;
   private             MenuItem              fileBackupMenuItem;
+  private             MenuItem              fileMoveMenuItem;
   private             MenuItem              reloadMenuItem;
   private             MenuItem              reloadTaggedMenuItem;
   private             MenuItem              publishWindowMenuItem;
@@ -489,7 +490,7 @@ public class Notenik
     
     filePrefs.setRecentFiles(model.getMaster().getRecentFiles());
     model.getMaster().registerMenu(openRecentMenu, this);
-    model.getMaster().load();
+    model.getMaster().load(filePrefs.purgeRecentFilesAtStartup());
     
     if (filePrefs.purgeRecentFilesAtStartup()) {
       model.getMaster().purgeInaccessibleFiles();
@@ -729,6 +730,11 @@ public class Notenik
       });
     FXUtils.assignShortcut(fileBackupMenuItem, "B");
     fileMenu.getItems().add(fileBackupMenuItem);
+
+    // Move Collection Menu Item
+    fileMoveMenuItem = new MenuItem("Move Collection...");
+    fileMoveMenuItem.setOnAction(e -> moveCollection());
+    fileMenu.getItems().add(fileMoveMenuItem);
     
     fxUtils.addSeparator(fileMenu);
     
@@ -1497,7 +1503,10 @@ public class Notenik
       } // End if we saved any recent files
     } // End if user selected a file
   } // end method createMasterCollection
-  
+
+  /**
+   Open Master Collection
+   */
   private void openMasterCollection() {
     boolean modOK = false;
     if (opInProgress) {
@@ -4128,6 +4137,86 @@ public class Notenik
     
     return saveOK;
   } */
+
+  /**
+   Let's move the current collection to a new location on disk.
+   */
+  private void moveCollection () {
+    boolean ok = false;
+    if (model.isOpen()) {
+      boolean modOK = false;
+      if (opInProgress) {
+        System.out.println("Notenik.moveCollection operation in progress = "
+            + String.valueOf(opInProgress));
+      } else {
+        modOK = modIfChanged();
+      }
+
+      if (modOK) {
+        dirChooser.setTitle("Specify new location for Collection");
+        if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+          dirChooser.setInitialDirectory(currentDirectory);
+        }
+        File toFolder = dirChooser.showDialog(primaryStage);
+        if (NoteCollectionModel.goodFolder(toFolder)) {
+
+          // Let's go ahead and perform the move
+          FileSpec fileSpec = model.getFileSpec();
+
+          // Copy the Collection from its old location to its new home
+          File fromFolder = model.getFolder();
+          ok = FileUtils.copyFolder(fromFolder, toFolder);
+
+          // Close the Collection at its old location
+          if (ok) {
+            closeFile();
+          }
+
+          // Now let's modify the location of the folder within the File Spec
+          fileSpec.setFile(toFolder);
+
+          // If we're moving the essential collection, then let's make sure it's
+          // still marked as essential in its new location.
+          if (ok && filePrefs.hasEssentialFilePath()) {
+            File essentialFile = new File(filePrefs.getEssentialFilePath());
+            if (essentialFile.equals(fromFolder)) {
+              filePrefs.setEssentialFileSpec(fileSpec);
+            }
+          } // end if we have an essential file path
+
+          // If we're moving the Master Collection, then let's change its location
+          if (model.getMaster().hasMasterCollection()) {
+            if (model.editingMasterCollection()) {
+              model.getMaster().setMasterCollection(toFolder);
+            }
+          }
+
+          // Get Rid of the Collection at its old location
+          FileUtils.deleteFolderContents(fromFolder);
+          fromFolder.delete();
+
+          // Open the Collection at its new location
+          if (ok) {
+            openFile(fileSpec, false);
+            Logger.getShared().recordEvent (LogEvent.NORMAL, "Collection moved from "
+                    + fromFolder.toString()
+                    + " to "
+                    + toFolder.toString(),
+                false);
+          }
+        } else {
+          PSOptionPane.showMessageDialog(primaryStage,
+            "Don't have a valid new location for Collection",
+            "Move Canceled",
+            javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+      } // end if mod ok
+    } // end if model is open
+    if (! ok) {
+      Logger.getShared().recordEvent (LogEvent.MEDIUM, "Collection could not be moved",
+          false);
+    }
+  } // end method moveCollection
 
   /**
    Save the current collection to a location specified by the user.

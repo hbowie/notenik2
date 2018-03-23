@@ -1,0 +1,10 @@
+Title:  ItemStatus
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.values
+
+Body:   
+ 
+A data value indicating the status of an item/note. 
+

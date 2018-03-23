@@ -1,0 +1,10 @@
+Title:  DataFieldDefinition
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.records
+
+Body:   
+ 
+An object holding the definition for a particular type of data field (aka column). A field definition indicates the general type of field, as well as the field's name. 
+

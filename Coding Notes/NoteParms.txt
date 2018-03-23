@@ -1,0 +1,17 @@
+Title:  NoteParms
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.notenik
+
+Date Added: 2018-01-25 19:20:43
+
+Body:   
+ 
+A set of parameters defining the configuration for a particular collection of notes. This object supplies a note collection type, a record definition, and a preferred file extension. 
+
+Notable methods:
+
+* getWidgetWithLabel -- Creates a label and a data entry widget for the passed DataFieldDefinition. 
+
+

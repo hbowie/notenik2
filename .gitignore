@@ -12,3 +12,5 @@
 *.ear
 /deploy
 /package
+/Notenik.iml
+/web

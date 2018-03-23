@@ -1,0 +1,12 @@
+Title:  com.powersurgepub.psutils2.values
+
+Type:   package
+
+Tags:   com.powersurgepub.psutils2.values
+
+Body:   
+ 
+A collection of classes used to store various types of data values. 
+
+In general, all of these classes implement the DataValue interface. 
+

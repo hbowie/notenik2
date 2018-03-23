@@ -1,0 +1,15 @@
+Title:  NoteLine
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.notenik
+
+Date Added: 2018-01-25 19:26:30
+
+Body:   
+ 
+ One line of note data, following MultiMarkdown conventions. The line will be
+ parsed, and its contents will be appropriately stored in the passed 
+ Note object. 
+
+

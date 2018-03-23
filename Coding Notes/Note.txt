@@ -1,0 +1,10 @@
+Title:  Note
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.notenik
+
+Body:   
+ 
+Defines a single note. 
+

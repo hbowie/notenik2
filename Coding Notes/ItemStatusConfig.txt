@@ -1,0 +1,25 @@
+Title:  ItemStatusConfig
+
+Type:   class
+
+Tags:   com.powersurgepub.psutils2.values
+
+Body:   
+ 
+A list of possible item status values indicating the degree of completion for an item (such as a note). Each value consists of a label and an integer indicating the label's position within the list. Higher integer values generally indicate greater states of completion. 
+
+These are the default values.
+
+* 0 - Suggested (Open)
+* 1 - Proposed
+* 2 - Approved
+* 3 - Planned
+* 4 - Active (In Work)
+* 5 - Held (Pending)
+* 6 - Completed
+* 7 - Pending Recurs
+* 8 - Canceled
+* 9 - Closed
+
+Note that a singleton list can be shared, or a unique list can be created. 
+

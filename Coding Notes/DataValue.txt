@@ -1,0 +1,10 @@
+Title:  DataValue
+
+Type:   interface
+
+Tags:   com.powersurgepub.psutils2.values
+
+Body:   
+ 
+The general interface used for any data value within this package. 
+

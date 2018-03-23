@@ -35,7 +35,7 @@ package com.powersurgepub.notenik2;
   import java.io.*;
   import java.util.*;
 
-  import com.powersurgepub.psutils2.values.Work;
+  import com.powersurgepub.psutils2.values.*;
   import javafx.scene.control.*;
   import org.xml.sax.*;
 
@@ -245,11 +245,18 @@ public class NoteExport {
           boolean tagSelected = workNote.getTags().anyTagFound(selectTags);
           if (tagSelected) {
             Note exportNote = new Note(workNote);
+
             Tags modTags = new Tags(exportNote.getTagsAsString());
             if (suppressTagsStr != null
                 && suppressTagsStr.length() > 0) {
               String cleansedTags = modTags.suppress(suppressTags);
               exportNote.setTags(cleansedTags);
+            }
+
+            if (recDef.contains(NoteParms.DATE_ADDED_FIELD_NAME)) {
+              if (! exportNote.hasDateAdded()) {
+                exportNote.setDateAdded(StringDate.YMDHMS_FORMAT.format(exportNote.getLastModDate()));
+              }
             }
 
             try {
@@ -288,6 +295,7 @@ public class NoteExport {
                 default:
                   DataRecord exportRec = new DataRecord();
                   exportRec.copyFields(exportRecDef, exportNote);
+
                   if (authorIncluded) {
                     exportRec.storeField(exportRecDef, NoteParms.AUTHOR_LAST_NAME_FIRST,
                         exportNote.getAuthorLastNameFirst());
@@ -296,6 +304,7 @@ public class NoteExport {
                     exportRec.storeField(exportRecDef, NoteParms.AUTHOR_WIKIMEDIA_PAGE,
                         exportNote.getAuthor().getWikiMediaPage());
                   }
+
                   if (workIncluded) {
                     Work work = workNote.getWork();
                     String pages = exportNote.getFieldData(NoteParms.WORK_PAGE_NUMBERS);
@@ -554,7 +563,7 @@ public class NoteExport {
   /**
    Export the notes to a tab-delimited file. 
   
-   @param notes    The collection of notes to be output. 
+   @param model    The collection of notes to be output.
    @param urlsTab The file to be written.
    @param favoritesOnly Do we only want favorites, or everything?
    @param favoritesTagsString The string containing the tag(s) identifying
@@ -567,7 +576,7 @@ public class NoteExport {
       File urlsTab, 
       boolean favoritesOnly, 
       String favoritesTagsString) {
-    
+
     this.model = model;
     TagsView tagsView = model.getTagsModel();
     boolean ok = true;
