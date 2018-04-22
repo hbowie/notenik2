@@ -462,7 +462,7 @@ public class Notenik
     tagsPrefs = new TagsPrefs();
     appPrefs.addSet(tagsPrefs);
     
-    filePrefs = new FilePrefs(this);
+    filePrefs = new FilePrefs(this, primaryStage);
     filePrefs.loadFromPrefs();
     appPrefs.addSet(filePrefs);
     model.setFilePrefs(filePrefs);
@@ -1679,6 +1679,8 @@ public class Notenik
           "", 
           model.getSelection().getLinkAsString());
       }
+    } else {
+      displayPane.noLink();
     }
 
     int fieldsDisplayed = 0;
@@ -2009,6 +2011,7 @@ public class Notenik
           if (backupInfo.okSoFar()) {
             model.saveLastBackupDate();
             backupInfo.pruneBackups();
+            backupInfo.backupsComplete();
             Alert alert = new Alert(AlertType.INFORMATION);
             alert.setTitle("Backup Results");
             alert.setHeaderText("Collection successfully backed up to:");

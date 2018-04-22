@@ -341,6 +341,10 @@ public class DisplayPane {
       webPane.setLauncher(link, "Open Collection", launcher);
     }
   }
+
+  public void noLink() {
+    webPane.noLink();
+  }
   
   public void displayLabelOnly(
       String label) {

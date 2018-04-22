@@ -2,7 +2,7 @@
 
 Name="Notenik"
 name="notenik"
-docs="/Users/hbowie/PSPub Docs"
+docs="/Users/hbowie/Projects/PSPub Docs"
 appf="dist/appfolder"
 cp 	-p -v "$docs/plists/$Name/Info.plist" package/macosx
 mkdir -p -v $appf
@@ -16,7 +16,7 @@ cp -p -v "$docs/logos/$name.png" $appf/logos/$name.png
 mkdir -p -v $appf/reports
 cp -p -R "$docs/resources/$name/reports" $appf
 
-mkdir -p dist/appfolder
+# mkdir -p dist/appfolder
 jdk=$(/usr/libexec/java_home)
 $jdk/bin/javapackager -version
 $jdk/bin/javapackager -deploy \
