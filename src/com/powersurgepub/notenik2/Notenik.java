@@ -77,7 +77,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.20";
+  public static final String PROGRAM_VERSION = "4.30";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -888,6 +888,9 @@ public class Notenik
 
     // Catch Up Daily Tasks Menu Item
     catchUpDailyMenuItem = new MenuItem("Catch Up Daily Tasks");
+    KeyCombination ukc
+            = new KeyCharacterCombination("U", KeyCombination.SHORTCUT_DOWN);
+    catchUpDailyMenuItem.setAccelerator(ukc);
     catchUpDailyMenuItem.setOnAction(e -> catchUpDailyTasks());
     collectionMenu.getItems().add(catchUpDailyMenuItem);
     

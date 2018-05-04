@@ -4,13 +4,15 @@ Seq:    15
 
 Tags:   bookmarks, link
 
+Date Added: 2017-10-18 13:48:49
+
 Body:   
  
 A Link Field within Notenik is intended to hold a URL: a hyperlink to a location on the Web (or to a local file, if you'd prefer to use it that way).
 
 You can easily Launch a link from within Notenik, either by using the dropdown to the left of the Link value, or by clicking on the Launch button in the Toolbar. 
 
-The Link Label dropdown also provides a couple of other options. Use the Tweak option to "tweak" your URL in some potentially useful ways; use the Disk File option to select a local file on your computer, to build a Link pointing to that file. 
+The Link Label dropdown also provides a couple of other options. Use the Tweak option to "tweak" your URL in some potentially useful ways; use the Disk File option to select a local file on your computer, to build a Link pointing to that file; use the Folder option to select a local folder. 
 
 The Tweak option may also be invoked from the Tools menu. 
 

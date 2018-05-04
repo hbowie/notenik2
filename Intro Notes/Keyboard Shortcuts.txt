@@ -4,6 +4,8 @@ Seq:    37
 
 Tags:   keys, shortcuts
 
+Date Added: 2017-10-27 12:55:15
+
 Body:   
  
 Following are the keyboard shortcuts available within the app. Tap the appropriate modifier key for your computer (CMD for a Mac), and then combine with a letter, number or symbol indicated below. 
@@ -27,6 +29,7 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * R - Replace
 * S - Save
 * T - Text Edit Note
+* U - Catch Up Daily Tasks
 * V - Paste
 * W - Reduce Window Size
 * X - Cut
