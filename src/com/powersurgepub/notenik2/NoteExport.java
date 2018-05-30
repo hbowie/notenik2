@@ -215,8 +215,8 @@ public class NoteExport {
 
       case TABDELIM_EXPORT:
       default:
-
         tabs = new TabDelimFile(exportFile);
+        exportRecDef.addColumn(NoteParms.BODY_AS_HTML_FIELD_NAME);
         if (recDef.contains(NoteParms.AUTHOR_FIELD_NAME)) {
           authorIncluded = true;
           exportRecDef.addColumn(NoteParms.AUTHOR_LAST_NAME_FIRST);
@@ -295,7 +295,9 @@ public class NoteExport {
                 default:
                   DataRecord exportRec = new DataRecord();
                   exportRec.copyFields(exportRecDef, exportNote);
-
+                  String md = workNote.getBody();
+                  String html = mdToHTML.markdownToHtml(md);
+                  exportRec.storeField(exportRecDef, NoteParms.BODY_AS_HTML_FIELD_NAME, html);
                   if (authorIncluded) {
                     exportRec.storeField(exportRecDef, NoteParms.AUTHOR_LAST_NAME_FIRST,
                         exportNote.getAuthorLastNameFirst());
@@ -1120,8 +1122,7 @@ public class NoteExport {
   
   /**
    Start the outline output file.
-  
-   @param suffix String to be appended to the title.
+
    */
   private void startOutline () {
     markupWriter.openForOutput();

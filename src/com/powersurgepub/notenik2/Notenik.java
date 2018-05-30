@@ -77,7 +77,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.30";
+  public static final String PROGRAM_VERSION = "4.40";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -151,8 +151,6 @@ public class Notenik
   private             Menu                  openRecentMenu;
   private             MenuItem              jumpMenuItem;
   private             MenuItem              openEssentialMenuItem;
-  private             MenuItem              openMasterCollectionMenuItem;
-  private             MenuItem              createMasterCollectionMenuItem;
   private             MenuItem              openHelpNotesMenuItem;
   private             MenuItem              fileNewMenuItem;
   private             MenuItem              fileSaveMenuItem;
@@ -160,6 +158,9 @@ public class Notenik
   private             MenuItem              fileSaveAsMenuItem;
   private             MenuItem              fileBackupMenuItem;
   private             MenuItem              fileMoveMenuItem;
+  private             MenuItem              openMasterCollectionMenuItem;
+  private             MenuItem              createMasterCollectionMenuItem;
+  private             MenuItem              searchForCollectionsMenuItem;
   private             MenuItem              reloadMenuItem;
   private             MenuItem              reloadTaggedMenuItem;
   private             MenuItem              publishWindowMenuItem;
@@ -560,6 +561,11 @@ public class Notenik
     boolean opened = model.openAtStartup(favoritesPrefs.isOpenStartup());
     if (opened) {
       newCollection();
+      if (model.editingMasterCollection()) {
+        searchForCollectionsMenuItem.setDisable(false);
+      } else {
+        searchForCollectionsMenuItem.setDisable(true);
+      }
     }
     
     // Now let's bring the curtains up
@@ -631,31 +637,6 @@ public class Notenik
     // Open Recent Menu Item
     openRecentMenu = new Menu("Open Recent");
     fileMenu.getItems().add(openRecentMenu);
-    
-    // Open Master Collection Menu Item
-    openMasterCollectionMenuItem = new MenuItem();
-    KeyCombination mkc
-        = new KeyCharacterCombination("M", KeyCombination.SHORTCUT_DOWN);
-    openMasterCollectionMenuItem.setAccelerator(mkc);
-    openMasterCollectionMenuItem.setText("Open Master Collection");
-    openMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-      @Override
-      public void handle(ActionEvent evt) {
-        openMasterCollection();
-      }
-    });
-    fileMenu.getItems().add(openMasterCollectionMenuItem);
-    
-    // Create Master Collection Menu Item
-    createMasterCollectionMenuItem = new MenuItem();
-    createMasterCollectionMenuItem.setText("Create Master Collection...");
-    createMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
-      @Override
-      public void handle(ActionEvent evt) {
-        createMasterCollection();
-      }
-    });
-    fileMenu.getItems().add(createMasterCollectionMenuItem);
     
     // Open Help Notes Menu Item
     openHelpNotesMenuItem = new MenuItem("Open Help Notes");
@@ -736,6 +717,41 @@ public class Notenik
     fileMoveMenuItem.setOnAction(e -> moveCollection());
     fileMenu.getItems().add(fileMoveMenuItem);
     
+    fxUtils.addSeparator(fileMenu);
+
+    // Open Master Collection Menu Item
+    openMasterCollectionMenuItem = new MenuItem();
+    KeyCombination mkc
+            = new KeyCharacterCombination("M", KeyCombination.SHORTCUT_DOWN);
+    openMasterCollectionMenuItem.setAccelerator(mkc);
+    openMasterCollectionMenuItem.setText("Open Master Collection");
+    openMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        openMasterCollection();
+      }
+    });
+    fileMenu.getItems().add(openMasterCollectionMenuItem);
+
+    // Create Master Collection Menu Item
+    createMasterCollectionMenuItem = new MenuItem();
+    createMasterCollectionMenuItem.setText("Create Master Collection...");
+    createMasterCollectionMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+      @Override
+      public void handle(ActionEvent evt) {
+        createMasterCollection();
+      }
+    });
+    fileMenu.getItems().add(createMasterCollectionMenuItem);
+
+    // Search for Collections Menu Item
+    searchForCollectionsMenuItem = new MenuItem();
+    searchForCollectionsMenuItem.setText("Search for Collections...");
+    searchForCollectionsMenuItem.setOnAction(e -> searchForCollections());
+    searchForCollectionsMenuItem.setDisable(true);
+    fileMenu.getItems().add(searchForCollectionsMenuItem);
+
+
     fxUtils.addSeparator(fileMenu);
     
     // Reload Menu Item
@@ -1536,8 +1552,86 @@ public class Notenik
           Trouble.getShared().report (
               errMsg,
               "Master Collection Open Error");
-        }
+      }
+      if (masterOpened) {
+        searchForCollectionsMenuItem.setDisable(false);
+      }
     } // end if mod ok
+  }
+
+  /**
+   Search for existing collections and add them to the Master Collection.
+   */
+  private void searchForCollections() {
+
+    boolean modOK = false;
+    if (opInProgress) {
+      System.out.println("Notenik.searchForCollections operation in progress = "
+          + String.valueOf(opInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+    if (modOK) {
+      DirectoryChooser searchDirChooser = new DirectoryChooser();
+
+      // Configure the properties
+      searchDirChooser.setTitle("Select Folder to Search for Collections");
+      searchDirChooser.setInitialDirectory(home.getUserHome());
+
+      // Show the directory dialog
+      File dir = searchDirChooser.showDialog(primaryStage);
+      if (dir != null) {
+        final Alert collectionSearchAlert = new Alert(AlertType.CONFIRMATION);
+        CollectionFinderTask task = new CollectionFinderTask(dir, model.getMaster());
+        task.setOnSucceeded(e -> addFoundCollections(task, collectionSearchAlert));
+        Thread backgroundThread = new Thread(task);
+        backgroundThread.setDaemon(true);
+        backgroundThread.start();
+        collectionSearchAlert.setTitle("Collection Search");
+        collectionSearchAlert.setHeaderText(null);
+        collectionSearchAlert.setContentText("Searching for additional Collections...");
+        collectionSearchAlert.getButtonTypes().setAll(ButtonType.CANCEL);
+        Optional<ButtonType> result = collectionSearchAlert.showAndWait();
+        if (result.isPresent()
+            && result.get() == ButtonType.CANCEL
+            && (!task.isDone())) {
+          task.cancel();
+        }
+      }
+    }
+
+  }
+
+  private void addFoundCollections(CollectionFinderTask task, Alert collectionSearchAlert) {
+    collectionSearchAlert.close();
+    ObservableList<File> collectionsToAdd = task.getValue();
+    if (collectionsToAdd == null) {
+      System.out.println("Collections to add is null");
+    } else {
+      // Alert collectionSearchResultsAlert = new Alert(AlertType.CONFIRMATION);
+      // collectionSearchResultsAlert.setTitle("Collection Search Results");
+      // collectionSearchResultsAlert.setHeaderText("We found " +
+      //    String.valueOf(collectionsToAdd.size()) + " Collections to Add");
+      // collectionSearchResultsAlert.setContentText("Proceed?");
+      // collectionSearchResultsAlert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+      // Optional<ButtonType> proceed = collectionSearchResultsAlert.showAndWait();
+      // if (proceed.isPresent()
+      //     && proceed.get() == ButtonType.OK) {
+      for (int i = 0; i < collectionsToAdd.size(); i++) {
+        File folderToAdd = collectionsToAdd.get(i);
+        model.getMaster().addRecentFile(folderToAdd);
+        // Note newNote = model.getNewNote();
+        // model.select(newNote);
+        // displaySelectedNote();
+      }
+      FileSpec fileSpec = model.getFileSpec();
+      savePrefs();
+      publishWindow.closeSource();
+      model.close();
+      noteDisplayed = false;
+      openFile(fileSpec, false);
+      // }
+    }
   }
   
   /**
@@ -1635,6 +1729,11 @@ public class Notenik
       if (NoteCollectionModel.goodFolder(fileSpec.getFolder())) {
         closeFile();
         openFile (fileSpec, false);
+        if (model.editingMasterCollection()) {
+          searchForCollectionsMenuItem.setDisable(false);
+        } else {
+          searchForCollectionsMenuItem.setDisable(true);
+        }
       }
     }
   }
@@ -1649,6 +1748,7 @@ public class Notenik
       model.close();
     }
     noteDisplayed = false;
+    searchForCollectionsMenuItem.setDisable(true);
   }
   
   /**
