@@ -42,5 +42,6 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * , - Notenik Preferences
 * [ - Prior Note
 * ]  - Next Note
+* → - Scroll to Selected Note
 
 

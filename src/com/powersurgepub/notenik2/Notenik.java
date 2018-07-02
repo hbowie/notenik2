@@ -77,7 +77,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.40";
+  public static final String PROGRAM_VERSION = "4.50";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -196,6 +196,7 @@ public class Notenik
   private             MenuItem              deleteNoteMenuItem;
   private             MenuItem              nextMenuItem;
   private             MenuItem              priorMenuItem;
+  private             MenuItem              scrollToSelectedMenuItem;
   private             MenuItem              openNoteMenuItem;
   private             MenuItem              closeNoteMenuItem;
   private             MenuItem              getFileInfoMenuItem;
@@ -951,6 +952,14 @@ public class Notenik
     priorMenuItem.setAccelerator(priorkc);
     priorMenuItem.setOnAction (e -> priorNote());
     noteMenu.getItems().add(priorMenuItem);
+
+    // Scroll to Selected Note Menu Item
+    scrollToSelectedMenuItem = new MenuItem("Scroll to Selected Note");
+    KeyCombination scrollkc
+        = new KeyCharacterCombination("'", KeyCombination.SHORTCUT_DOWN);
+    scrollToSelectedMenuItem.setAccelerator(scrollkc);
+    scrollToSelectedMenuItem.setOnAction(e -> scrollToSelectedNote());
+    noteMenu.getItems().add(scrollToSelectedMenuItem);
     
     fxUtils.addSeparator(noteMenu);
     
@@ -3011,6 +3020,14 @@ public class Notenik
         }
       }
     }
+  }
+
+  /**
+   Scroll to the selected note.
+   */
+  public void scrollToSelectedNote() {
+    int selectedRow = noteTable.getSelectionModel().getSelectedIndex();
+    noteTable.scrollTo(selectedRow);
   }
   
   private void selectPositionAndDisplay(Note note) {
