@@ -36,9 +36,13 @@ package com.powersurgepub.notenik2;
 
   @author Herb Bowie
  */
-public class EditPane {
+public class EditPane
+    implements TextHandler {
   
   private static final int                HEIGHT_SEP         = 16;
+  private static final String             WORK_TITLE         = "work-title";
+
+  private             NoteCollectionModel model = null;
   private             FXUtils             fxUtils;
   private             GridPane            editPane;
   
@@ -54,10 +58,30 @@ public class EditPane {
   private             DateWidget          dateWidget = null;
   private             DataWidget          recursWidget = null;
   private             DataWidget          seqWidget = null;
+  private             DataWidget          workYearWidget = null;
+  private             DataWidget          workIDWidget = null;
+  private             DataWidget          workRightsWidget = null;
+  private             DataWidget          workRightsHolderWidget = null;
+  private             DataWidget          workPublisherWidget = null;
+  private             DataWidget          workCityWidget = null;
+  private             DataWidget          workLinkWidget = null;
+  private             DataWidget          workMinorTitleWidget = null;
+
   private             boolean             statusIncluded      = false;
   private             boolean             dateIncluded        = false;
   private             boolean             recursIncluded      = false;
   private             boolean             seqIncluded         = false;
+  private             boolean             authorIncluded      = false;
+  private             boolean             workTitleIncluded   = false;
+  private             boolean             workYearIncluded    = false;
+  private             boolean             workTypeIncluded    = false;
+  private             boolean             workIDIncluded      = false;
+  private             boolean             workRightsIncluded  = false;
+  private             boolean             workRightsHolderIncluded = false;
+  private             boolean             workPublisherIncluded = false;
+  private             boolean             workCityIncluded    = false;
+  private             boolean             workLinkIncluded    = false;
+  private             boolean             workMinorTitleIncluded = false;
   
   private             Label               lastModDateLabel;
   private             Label               lastModDateText;
@@ -85,62 +109,82 @@ public class EditPane {
       LinkTweakerInterface linkTweaker,
       DateWidgetOwner dateWidgetOwner,
       Stage editStage) {
-    
+
+    this.model = model;
     minHeight = 0;
     prefHeight = 0;
     WidgetWithLabel widgetWithLabel = new WidgetWithLabel();
     for (int i = 0; i < model.getNumberOfFields(); i++) {
       DataFieldDefinition fieldDef = model.getRecDef().getDef(i);
-      widgetWithLabel = model.getNoteParms().getWidgetWithLabel(fieldDef, editPane, rowCount); 
+      widgetWithLabel = model.getNoteParms().getWidgetWithLabel(fieldDef, editPane, rowCount);
       double widgetMinHeight = widgetWithLabel.getWidget().getMinHeight();
       double widgetPrefHeight = widgetWithLabel.getWidget().getPrefHeight();
       minHeight = minHeight + widgetMinHeight + HEIGHT_SEP;
       prefHeight = prefHeight + widgetPrefHeight + HEIGHT_SEP;
-      switch (fieldDef.getType()) {
-        // Special processing for Tags
-        case (DataFieldDefinition.TAGS_TYPE):
-          tagsTextSelector = (TextSelector)widgetWithLabel.getWidget();
-          tagsTextSelector.setValueList(model.getTagsList());
-          tagsTextSelector.setHandlesMultipleValues(true);
-          break;
-        case (DataFieldDefinition.AUTHOR_TYPE):
-          authorTextSelector = (TextSelector)widgetWithLabel.getWidget();
-          authorTextSelector.setValueList(model.getAuthorList());
-          authorTextSelector.setHandlesMultipleValues(false);
-          break;
-        case (DataFieldDefinition.WORK_TYPE):
-          workTitleTextSelector = (TextSelector)widgetWithLabel.getWidget();
-          workTitleTextSelector.setValueList(model.getWorkList());
-          workTitleTextSelector.setHandlesMultipleValues(false);
-          break;
-        case (DataFieldDefinition.PICK_FROM_LIST):
-          if (fieldDef.getCommonName().equals(NoteParms.WORK_TYPE_COMMON_NAME)) {
-            workTypeTextSelector = (TextSelector)widgetWithLabel.getWidget();
-            workTypeTextSelector.setValueList(Work.getWorkTypeValueList());
-            workTypeTextSelector.setHandlesMultipleValues(false);
-          }
-          break;
-        case (DataFieldDefinition.LINK_TYPE):
-          linkWidget = widgetWithLabel.getWidget();
-          linkLabel = (LinkLabel)widgetWithLabel.getLabel();
-          linkLabel.setLinkTweaker(linkTweaker);
-          break;
-        case (DataFieldDefinition.STATUS_TYPE):
-          statusWidget = widgetWithLabel.getWidget();
-          statusIncluded = true;
-          break;
-        case (DataFieldDefinition.DATE_TYPE):
-          dateWidget = (DateWidget)widgetWithLabel.getWidget();
-          dateIncluded = true;
-          break;
-        case (DataFieldDefinition.RECURS_TYPE):
-          recursIncluded = true;
-          recursWidget = widgetWithLabel.getWidget();
-          break;
-        case (DataFieldDefinition.SEQ_TYPE):
-          seqWidget = widgetWithLabel.getWidget();
-          seqIncluded = true;
-          break;
+
+      int fieldType = fieldDef.getType();
+      String fieldName = fieldDef.getCommonName().getCommonForm();
+
+      if (fieldName.equals(NoteParms.WORK_LINK_COMMON_NAME)) {
+        workLinkWidget = widgetWithLabel.getWidget();
+        workLinkIncluded = true;
+      } else if (fieldName.equals(NoteParms.WORK_MINOR_TITLE_COMMON_NAME)) {
+        workMinorTitleWidget = widgetWithLabel.getWidget();
+        workMinorTitleIncluded = true;
+      } else if (fieldType == DataFieldDefinition.TAGS_TYPE) {
+        tagsTextSelector = (TextSelector) widgetWithLabel.getWidget();
+        tagsTextSelector.setValueList(model.getTagsList());
+        tagsTextSelector.setHandlesMultipleValues(true);
+      } else if (fieldType == DataFieldDefinition.AUTHOR_TYPE) {
+        authorTextSelector = (TextSelector) widgetWithLabel.getWidget();
+        authorTextSelector.setValueList(model.getAuthorList());
+        authorTextSelector.setHandlesMultipleValues(false);
+        authorIncluded = true;
+      } else if (fieldType == DataFieldDefinition.WORK_TYPE) {
+        workTitleTextSelector = (TextSelector) widgetWithLabel.getWidget();
+        workTitleTextSelector.setValueList(model.getWorkList());
+        workTitleTextSelector.setHandlesMultipleValues(false);
+        workTitleTextSelector.setFieldName(WORK_TITLE);
+        workTitleTextSelector.addTextHandler(this);
+        workTitleIncluded = true;
+      } else if (fieldType == DataFieldDefinition.PICK_FROM_LIST) {
+        if (fieldDef.getCommonName().equals(NoteParms.WORK_TYPE_COMMON_NAME)) {
+          workTypeTextSelector = (TextSelector) widgetWithLabel.getWidget();
+          workTypeTextSelector.setValueList(Work.getWorkTypeValueList());
+          workTypeTextSelector.setHandlesMultipleValues(false);
+          workTypeIncluded = true;
+        }
+      } else if (fieldType == DataFieldDefinition.LINK_TYPE) {
+        linkWidget = widgetWithLabel.getWidget();
+        linkLabel = (LinkLabel) widgetWithLabel.getLabel();
+        linkLabel.setLinkTweaker(linkTweaker);
+      } else if (fieldType == DataFieldDefinition.STATUS_TYPE) {
+        statusWidget = widgetWithLabel.getWidget();
+        statusIncluded = true;
+      } else if (fieldType == DataFieldDefinition.DATE_TYPE) {
+        dateWidget = (DateWidget) widgetWithLabel.getWidget();
+        dateIncluded = true;
+      } else if (fieldType == DataFieldDefinition.RECURS_TYPE) {
+        recursIncluded = true;
+        recursWidget = widgetWithLabel.getWidget();
+      } else if (fieldType == DataFieldDefinition.SEQ_TYPE) {
+        seqWidget = widgetWithLabel.getWidget();
+        seqIncluded = true;
+      } else if (fieldName.equals(NoteParms.WORK_IDENTIFIER_COMMON_NAME)) {
+        workIDWidget = widgetWithLabel.getWidget();
+        workIDIncluded = true;
+      } else if (fieldName.equals(NoteParms.WORK_RIGHTS_COMMON_NAME)) {
+        workRightsWidget = widgetWithLabel.getWidget();
+        workRightsIncluded = true;
+      } else if (fieldName.equals(NoteParms.WORK_RIGHTS_HOLDER_COMMON_NAME)) {
+        workRightsHolderWidget = widgetWithLabel.getWidget();
+        workRightsHolderIncluded = true;
+      } else if (fieldName.equals(NoteParms.PUBLISHER_COMMON_NAME)) {
+        workPublisherWidget = widgetWithLabel.getWidget();
+        workPublisherIncluded = true;
+      } else if (fieldName.equals(NoteParms.PUBLISHER_CITY_COMMON_NAME)) {
+        workCityWidget = widgetWithLabel.getWidget();
+        workCityIncluded = true;
       }
       widgets.add(widgetWithLabel.getWidget());
       rowCount++;
@@ -199,6 +243,84 @@ public class EditPane {
   public Pane getPane() {
     return editPane;
   }
+
+  /**
+   * When a text selector's value is updated, check to see if there are values
+   * from other Notes that can be filled in for the user.
+   *
+   * @param fieldName The name identifying the field that was updated.
+   */
+  public void textSelectionUpdated(String fieldName) {
+
+    if (fieldName.equals(WORK_TITLE)) {
+      String workTitle = workTitleTextSelector.getText();
+      Work work = model.getWorkList().getWork(workTitle);
+      if (work != null) {
+
+        if (work.hasAuthorName()
+            && authorIncluded
+            && authorTextSelector.getText().length() == 0) {
+          authorTextSelector.setText(work.getAuthorName());
+        }
+
+        if (work.hasYear()
+            && dateIncluded
+            && dateWidget.getText().length() == 0) {
+          dateWidget.setText(work.getYear());
+        }
+
+        if (work.hasType()
+          && workTypeIncluded
+            && (workTypeTextSelector.getText().equals("")
+                || workTypeTextSelector.getText().equals(Work.UNKNOWN))) {
+              workTypeTextSelector.setText(work.getTypeLabel());
+        } // end if work from list has a type
+
+        if (work.hasID()
+          && workIDIncluded
+            && workIDWidget.getText().length() == 0) {
+            workIDWidget.setText(work.getID());
+        }
+
+        if (work.hasRights()
+            && workRightsIncluded
+            && workRightsWidget.getText().length() == 0) {
+          workRightsWidget.setText(work.getRights());
+        }
+
+        if (work.hasRightsOwner()
+            && workRightsHolderIncluded
+            && workRightsHolderWidget.getText().length() == 0) {
+          workRightsHolderWidget.setText(work.getRightsOwner());
+        }
+
+        if (work.hasPublisher()
+            && workPublisherIncluded
+            && workPublisherWidget.getText().length() == 0) {
+          workPublisherWidget.setText(work.getPublisher());
+        }
+
+        if (work.hasCity()
+            && workCityIncluded
+            && workCityWidget.getText().length() == 0) {
+          workCityWidget.setText(work.getCity());
+        }
+
+        if (work.hasLink()
+            && workLinkIncluded
+            && workLinkWidget.getText().length() == 0) {
+          workLinkWidget.setText(work.getLink());
+        }
+
+        if (work.hasMinorTitle()
+            && workMinorTitleIncluded
+            && workMinorTitleWidget.getText().length() == 0) {
+          workMinorTitleWidget.setText(work.getMinorTitle());
+        }
+
+      } // end if we already have data about this work
+    } // end if work title being updated
+  } // end method textSelectionUpdated
   
   public boolean hasLink() {
     return (linkWidget != null && linkWidget.getText().length() > 0);
