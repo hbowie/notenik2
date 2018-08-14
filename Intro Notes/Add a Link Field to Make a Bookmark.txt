@@ -18,6 +18,8 @@ The Tweak option may also be invoked from the Tools menu.
 
 Adding a Link to a Note doesn't necessarily reduce the Note to a simple Bookmark, but this is certainly one way to use a Collection of Notes. 
 
+Note that if you use a Link to point to a local folder containing another Notenik Collection, then Launching that Link will result in closing the current Collection and opening the linked Collection within Notenik.
+
 Look under the Collection menu for an option to Validate Links. Notenik will check all your Link Values to make sure they're accessible, and will add an 'Invalid URL' tag to any Notes with unresponsive links. 
 
 If you're using a Link field to point to a local disk file, then you can use the Get File Info command under the Note menu to see more info about the file you've linked to. 

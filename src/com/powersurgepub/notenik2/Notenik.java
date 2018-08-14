@@ -1778,7 +1778,9 @@ public class Notenik
     displayPane.displayTitle(model.getSelection().getTitle());
     
     if (model.getSelection().hasLink()) {
-      if (model.editingMasterCollection()) {
+      File linkAsFile = model.getSelection().getLinkAsFile();
+      boolean linkPointsToCollection = CollectionFinderTask.isThisACollection(linkAsFile);
+      if (model.editingMasterCollection() || linkPointsToCollection) {
         displayPane.displayLink(
           this,
           NoteParms.LINK_FIELD_NAME, 
@@ -3539,10 +3541,14 @@ public class Notenik
   }
   
   private void launchButtonClicked() {
-    if (model.editingMasterCollection()) {
-      openCollectionFromCurrentNote();
-    } else {
-      openURL (editPane.getLink());
+    if (model.getSelection().hasLink()) {
+      File linkAsFile = model.getSelection().getLinkAsFile();
+      boolean linkPointsToCollection = CollectionFinderTask.isThisACollection(linkAsFile);
+      if (model.editingMasterCollection() || linkPointsToCollection) {
+        openCollectionFromCurrentNote();
+      } else {
+        openURL(editPane.getLink());
+      }
     }
   }
   

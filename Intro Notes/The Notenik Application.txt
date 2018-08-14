@@ -8,7 +8,7 @@ Date Added: 2017-11-12 08:44:24
 
 Body:   
  
-The Notenik App looks like this. 
+The Notenik App looks something like this. 
 
 ![Notenik Screenshot](http://www.powersurgepub.com/screenshots/notenik.png "Notenik Screenshot")
 
@@ -22,7 +22,7 @@ If you see a message saying you need Java, then you can visit [Java.com](http://
 
 If you'd like to learn more about Notenik, then it's probably best to download the application now and get it launched, so that you can follow along with the examples given below. 
 
-* [Notenik macOS application version 4.40](http://www.notenik.net/Notenik-4.40.dmg)
+* [Notenik macOS application version 4.50](http://www.notenik.net/Notenik-4.50.dmg)
 * [PowerSurge Publishing Omni Pack](http://www.powersurgepub.com/downloads/pspub-omni-pack.zip)
 
 From this point on, I'll introduce one concept at a time. 
