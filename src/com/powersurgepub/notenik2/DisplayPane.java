@@ -23,6 +23,7 @@ package com.powersurgepub.notenik2;
 
   import java.text.*;
 
+  import javafx.scene.control.ComboBox;
   import javafx.scene.layout.*;
 
 /**
@@ -344,6 +345,22 @@ public class DisplayPane {
 
   public void noLink() {
     webPane.noLink();
+  }
+
+  /**
+   * Provide a handler for optional attachments.
+   *
+   * @param attachmentHandler An object capabable of handling attachments.
+   */
+  public void setAttachmentHandler(AttachmentHandler attachmentHandler) {
+    webPane.setAttachmentHandler(attachmentHandler);
+  }
+
+  /**
+   * Indicate that we have no attachments for this item.
+   */
+  public void noAttachments() {
+    webPane.noAttachments();
   }
   
   public void displayLabelOnly(

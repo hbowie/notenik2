@@ -10,7 +10,7 @@ Body:
  
 Each Note is part of a Collection, and each Collection is stored in its own folder (aka directory). Each Note within a Collection must have its own unique Title. 
 
-You can organize your Notes into as many Collections as you would like, and store each one wherever you would like. 
+You can organize your Notes into as many Collections as you would like, and store each Collection wherever you would like. 
 
 The Notenik application can only open one Collection at a time, but you can easily switch from one to another using the Open Recent command on the File menu. If you want to quickly go back and forth between two Collections, use the Jump to Last Collection command, or its keyboard shortcut. 
 

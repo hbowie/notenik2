@@ -173,15 +173,12 @@ public class FileInfoWindow
   */
   public void setFile(String fileStr) {
 
-    System.out.println("FileInfoWindow.setFile");
-    System.out.println("  - File String = '" + fileStr + "'");
     folder = null;
     file = null;
     // files = new FileTable();
     // files.createTable();
 		// filesTable = files.getTable();
     FileName fileName = new FileName(fileStr);
-    System.out.println("  - File Name get Path = " + fileName.getPath());
     folderText.setText(fileName.getPath());
     folder = new File (fileName.getPath());
     boolean folderExists = folder.exists();
@@ -190,12 +187,10 @@ public class FileInfoWindow
     } else {
       folderExistsLabel.setText("Folder does not exist.");
     }
-    System.out.println("  - File Name get File Name = " + fileName.getFileName());
     fileText.setText(fileName.getFileName());
     fileExistsLabel.setText("File does not exist");
     if (folderExists) {
       file = fileName.getFile();
-      System.out.println("  - File = " + String.valueOf(file));
       if (file.exists()) {
         fileExistsLabel.setText("File exists.");
       }

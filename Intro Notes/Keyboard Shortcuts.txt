@@ -1,6 +1,6 @@
 Title:  Keyboard Shortcuts
 
-Seq:    37
+Seq:    38
 
 Tags:   keys, shortcuts
 
@@ -15,7 +15,7 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * D - Delete Note
 * E - Open Essential Collection
 * F - Find
-* G - Get File Info
+* G - Find Again
 * H - Hide Notenik
 * I - Increment Date or Seq
 * J - Jump to Last Collection

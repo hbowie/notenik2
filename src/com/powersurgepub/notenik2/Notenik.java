@@ -35,6 +35,7 @@ package com.powersurgepub.notenik2;
   import com.powersurgepub.psutils2.values.*;
   import com.powersurgepub.psutils2.widgets.*;
 
+  import java.awt.*;
   import java.io.*;
   import java.net.*;
   import java.text.*;
@@ -46,11 +47,17 @@ package com.powersurgepub.notenik2;
   import javafx.concurrent.*;
   import javafx.event.*;
   import javafx.geometry.*;
+  import javafx.geometry.Insets;
   import javafx.scene.*;
   import javafx.scene.control.*;
   import javafx.scene.control.Alert.*;
+  import javafx.scene.control.Button;
   import javafx.scene.control.ButtonBar.*;
+  import javafx.scene.control.Menu;
+  import javafx.scene.control.MenuBar;
+  import javafx.scene.control.MenuItem;
   import javafx.scene.control.TableView.*;
+  import javafx.scene.control.TextField;
   import javafx.scene.input.*;
   import javafx.scene.layout.*;
   import javafx.stage.*;
@@ -66,6 +73,7 @@ public class Notenik
     implements
       AppToBackup,
       AppWithLinksToValidate,
+      AttachmentHandler,
       DateWidgetOwner,
       DisplayWindow,
       FileSpecOpener,
@@ -77,7 +85,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.50";
+  public static final String PROGRAM_VERSION = "4.60";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -182,6 +190,7 @@ public class Notenik
   private             MenuItem              collectionPrefsMenuItem;
   private             MenuItem              collectionTemplateMenuItem;
   private             MenuItem              findMenuItem;
+  private             MenuItem              findAgainMenuItem;
   private             MenuItem              replaceMenuItem;
   private             MenuItem              addReplaceTagsMenuItem;
   private             MenuItem              flattenTagsMenuItem;
@@ -202,6 +211,8 @@ public class Notenik
   private             MenuItem              getFileInfoMenuItem;
   private             MenuItem              incrementSeqMenuItem;
   private             MenuItem              incrementDateMenuItem;
+  private             MenuItem              addAttachmentMenuItem;
+  private             MenuItem              deleteAttachmentMenuItem;
   private             MenuItem              copyNoteMenuItem;
   private             MenuItem              pasteNoteMenuItem;
   private             Menu                  htmlMenu;
@@ -868,6 +879,14 @@ public class Notenik
     findMenuItem.setAccelerator(fkc);
     findMenuItem.setOnAction(e -> findNote());
     collectionMenu.getItems().add(findMenuItem);
+
+    // Find Again Menu Item
+    findAgainMenuItem = new MenuItem(("Find Again"));
+    KeyCombination gkc = new KeyCharacterCombination("G", KeyCombination.SHORTCUT_DOWN);
+    findAgainMenuItem.setAccelerator(gkc);
+    findAgainMenuItem.setOnAction(e -> findNote());
+    findAgainMenuItem.setDisable(true);
+    collectionMenu.getItems().add(findAgainMenuItem);
     
     // Replace Menu Item
     replaceMenuItem = new MenuItem("Replace...");
@@ -980,9 +999,6 @@ public class Notenik
     
     // Get File Info Menu Item
     getFileInfoMenuItem = new MenuItem("Get File Info...");
-    KeyCombination gkc
-        = new KeyCharacterCombination("G", KeyCombination.SHORTCUT_DOWN);
-    getFileInfoMenuItem.setAccelerator(gkc);
     getFileInfoMenuItem.setOnAction(e -> displayFileInfo());
     noteMenu.getItems().add(getFileInfoMenuItem);
     
@@ -996,6 +1012,18 @@ public class Notenik
     incrementDateMenuItem.setOnAction(e -> incrementDate());
     noteMenu.getItems().add(incrementDateMenuItem);
     
+    fxUtils.addSeparator(noteMenu);
+
+    // Add Attachment Menu Item
+    addAttachmentMenuItem = new MenuItem("Add Attachment...");
+    addAttachmentMenuItem.setOnAction(e -> addAttachment());
+    noteMenu.getItems().add(addAttachmentMenuItem);
+
+    // Delete Attachment Menu Item
+    deleteAttachmentMenuItem = new MenuItem("Delete Attachment");
+    deleteAttachmentMenuItem.setOnAction(e -> deleteAttachment());
+    noteMenu.getItems().add(deleteAttachmentMenuItem);
+
     fxUtils.addSeparator(noteMenu);
     
     // Copy Note Menu Item
@@ -1797,6 +1825,14 @@ public class Notenik
       displayPane.noLink();
     }
 
+    if (model.getSelection().hasAttachments()) {
+      displayPane.setAttachmentHandler(this);
+      deleteAttachmentMenuItem.setDisable(false);
+    } else {
+      displayPane.noAttachments();
+      deleteAttachmentMenuItem.setDisable(true);
+    }
+
     int fieldsDisplayed = 0;
     if (editPane.getNumberOfFields() == model.getNumberOfFields()) {
       for (int i = 0; i < model.getNumberOfFields(); i++) {
@@ -2395,8 +2431,12 @@ public class Notenik
         Alert alert = new Alert(AlertType.CONFIRMATION);
         alert.setTitle("Delete Confirmation");
         alert.setHeaderText(null);
+        String attachmentStr = "";
+        if (model.getSelection().hasAttachments()) {
+          attachmentStr = " and " + String.valueOf(model.getSelection().getNumberOfAttachments()) + " attachments";
+        }
         alert.setContentText("Really delete Note titled " 
-            + model.getSelection().getTitle() + "?");
+            + model.getSelection().getTitle() + attachmentStr + "?");
         Optional<ButtonType> result = alert.showAndWait();
         okToDelete = (result.get() == ButtonType.OK);
       }
@@ -2404,6 +2444,11 @@ public class Notenik
         noFindInProgress();
         opInProgress = true;
         String nextTitle = model.nextTitle();
+        File attachmentsFolder = model.getAttachmentsFolder();
+        for (int i = 0; i < model.getSelection().getNumberOfAttachments(); i++) {
+          File fileToDelete = new File(attachmentsFolder, model.getSelection().getAttachment(i).getFileName());
+          fileToDelete.delete();
+        }
         boolean deleted = model.removeSelection();
         if (deleted) {
           model.select(nextTitle);
@@ -2574,6 +2619,7 @@ public class Notenik
     int itemsChanged = 0;
     boolean found = true;
     findButton.setText(FIND);
+    findAgainMenuItem.setDisable(true);
     while (found) {
       found = findNote (
         findButton.getText(),
@@ -2851,11 +2897,13 @@ public class Notenik
   
   public void noFindInProgress() {
     findButton.setText(FIND);
+    findAgainMenuItem.setDisable(true);
     replaceWindow.noFindInProgress();
   }
   
   public void findInProgress() {
     findButton.setText(FIND_AGAIN);
+    findAgainMenuItem.setDisable(false);
     replaceWindow.findInProgress();
   }
   
@@ -3925,6 +3973,181 @@ public class Notenik
         Note noteToSelect = model.getFromTitle(startingTitle);
         selectPositionAndDisplay(noteToSelect);
       }
+    }
+  }
+
+  /**
+   * Add a new attachment to this note.
+   */
+  private void addAttachment() {
+
+    if (model.isOpen() && model.hasSelection()) {
+      FileChooser attachmentPicker = new FileChooser();
+      attachmentPicker.setTitle("Select the file to be attached");
+      File attachmentFile = fileChooser.showOpenDialog(primaryStage);
+      if (attachmentFile == null) {
+        Alert alert = new Alert(AlertType.ERROR);
+        alert.setTitle("Attachment Error");
+        alert.setContentText("No file was selected to be attached.");
+        alert.showAndWait();
+      } else {
+        FileName attachmentFileName = new FileName(attachmentFile);
+        TextInputDialog dialog = new TextInputDialog("");
+        dialog.setTitle("Name the Attachment");
+        dialog.setHeaderText("The attachment's name will start with the Note's Title. You may add an optional suffix");
+        dialog.setContentText("File Name Suffix:");
+        Optional<String> answer = dialog.showAndWait();
+        StringBuilder suffix = new StringBuilder();
+        if (answer.isPresent()) {
+          suffix.append(answer.get());
+        }
+        if (suffix.length() > 0) {
+          char firstChar = suffix.charAt(0);
+          if (Character.isLetter(firstChar) || Character.isDigit(firstChar)) {
+            suffix.insert(0, ' ');
+          }
+        }
+        NoteAttachment attachment = new NoteAttachment();
+        attachment.setParentNote(model.getSelection());
+        attachment.setFileNameSuffix(suffix.toString());
+        attachment.setFileNameExtension(attachmentFileName.getExt());
+        File attachmentsFolder = model.getAttachmentsFolder();
+        if (! attachmentsFolder.exists()) {
+          attachmentsFolder.mkdir();
+        }
+        File attachedFile = new File(attachmentsFolder, attachment.getFileName());
+        if (attachedFile.exists()) {
+          Alert alert = new Alert(AlertType.ERROR);
+          alert.setTitle("Attachment Error");
+          alert.setHeaderText("This attachment suffix is already in use");
+          alert.setContentText(attachment.getFileName());
+          alert.showAndWait();
+        } else {
+          FileUtils.copyFile(attachmentFile, attachedFile);
+          model.getSelection().addAttachment(attachment);
+          displayPane.setAttachmentHandler(this);
+          Alert alert = new Alert(AlertType.INFORMATION);
+          alert.setTitle("Attachment Success");
+          alert.setHeaderText("The file has been attached and copied to the files folder");
+          alert.setContentText("The file name is: " + attachedFile.toString());
+          alert.showAndWait();
+        }
+      } // end if the user specified a file to be attached
+    } else {
+      // We don't currently have a selected note
+      Alert alert = new Alert(AlertType.WARNING);
+      alert.setTitle("Note Selection Warning");
+      alert.setHeaderText(null);
+      alert.setContentText("Plesase select a note before adding an attachment");
+      alert.showAndWait();
+    }
+  } // end method attAttachment
+
+  /**
+   * Populate the combo box with attachments.
+   *
+   * @param cb The ComboBox to be populated.
+   */
+  public void populateAttachmentComboBox(ComboBox cb) {
+    if (model.isOpen() && model.hasSelection()) {
+      Note thisNote = model.getSelection();
+      for (int i = 0; i < thisNote.getNumberOfAttachments(); i++) {
+        NoteAttachment attachment = thisNote.getAttachment(i);
+        cb.getItems().add(attachment);
+      }
+    }
+  }
+
+  /**
+   * Respond to a user selection of an attachment.
+   *
+   * @param attachment The Note Attachment that has been selected.
+   */
+  public void attachmentSelected(Object attachment) {
+    NoteAttachment noteAttachment = (NoteAttachment)attachment;
+    File attachmentsFolder = model.getAttachmentsFolder();
+    File attachmentFile = new File(attachmentsFolder, noteAttachment.getFileName());
+    if (! Desktop.isDesktopSupported()) {
+      System.out.println("Desktop not supported");
+      Logger.getShared().recordEvent(LogEvent.MEDIUM,
+          "Java Desktop not supported -- cannot open attachments",
+          false);
+    } else {
+      Desktop desktop = Desktop.getDesktop();
+      if (! attachmentFile.exists()) {
+        System.out.println("File does not exist!");
+        Logger.getShared().recordEvent(LogEvent.MEDIUM,
+            "Attachment file does not exist",
+            false);
+      } else {
+        try {
+          desktop.open(attachmentFile);
+        } catch (IOException e) {
+          System.out.println("I/O Exception attempting to open " + attachmentFile.toString());
+          Logger.getShared().recordEvent(LogEvent.MEDIUM,
+              "I/O Error while attempting to open attachment "
+                  + attachmentFile.toString(),
+              false);
+        }
+      } // end if attachment file exists
+    } // end if desktop supported
+  } // end method attachmentSelected
+
+  private void deleteAttachment() {
+    if (model.isOpen() && model.hasSelection()) {
+      Note thisNote = model.getSelection();
+      File attachmentsFolder = model.getAttachmentsFolder();
+      int attachmentIndex = -1;
+      if (thisNote.getNumberOfAttachments() == 0) {
+        // No attachments
+      } else if (thisNote.getNumberOfAttachments() == 1) {
+        // 1 attachment
+        attachmentIndex = 0;
+      } else {
+        // Note has multiple attachments - user must pick one
+        ArrayList<String> choices = new ArrayList<>();
+        String defaultChoice = "";
+        for (int i = 0; i < thisNote.getNumberOfAttachments(); i++) {
+          String choice = thisNote.getAttachment(i).getFileName();
+          choices.add(choice);
+          if (i == 0) {
+            defaultChoice = choice;
+          }
+        }
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(defaultChoice, choices);
+        dialog.setTitle("Attachment Chooser");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Select an attachment to delete:");
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()){
+          attachmentIndex = thisNote.getAttachmentIndex(result.get());
+        }
+      }
+      if (attachmentIndex >= 0) {
+        NoteAttachment attachmentToDelete = thisNote.getAttachment(attachmentIndex);
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("Delete Attachment Confirmation");
+        alert.setHeaderText("Are you sure you want to delete this attachment?");
+        alert.setContentText(attachmentToDelete.getFileName() + " will be permanently deleted");
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.get() == ButtonType.OK){
+          File attachmentFile = new File(attachmentsFolder, attachmentToDelete.getFileName());
+          attachmentFile.delete();
+          thisNote.deleteAttachment(attachmentIndex);
+        }
+      } else {
+        Alert alert = new Alert(AlertType.ERROR);
+        alert.setTitle("Delete Attachment Error");
+        alert.setContentText("Nothing to Delete");
+        alert.showAndWait();
+      }
+    } else {
+      // We don't currently have a selected note
+      Alert alert = new Alert(AlertType.WARNING);
+      alert.setTitle("Note Selection Warning");
+      alert.setHeaderText(null);
+      alert.setContentText("Plesase select a note before attempting to delete an attachment");
+      alert.showAndWait();
     }
   }
 

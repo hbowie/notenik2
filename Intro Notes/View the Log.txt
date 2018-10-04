@@ -1,8 +1,10 @@
 Title:  View the Log
 
-Seq:    36
+Seq:    37
 
 Tags:   log, problems, window
+
+Date Added: 2017-10-27 12:55:15
 
 Body:   
  
