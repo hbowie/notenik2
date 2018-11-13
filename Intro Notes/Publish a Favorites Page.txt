@@ -1,6 +1,6 @@
 Title:  Publish a Favorites Page
 
-Seq:    32
+Seq:    33
 
 Tags:   bookmarks, favorites, tags
 

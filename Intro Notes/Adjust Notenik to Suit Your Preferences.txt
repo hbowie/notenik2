@@ -1,6 +1,6 @@
 Title:  Adjust Notenik to Suit Your Preferences
 
-Seq:    28
+Seq:    29
 
 Tags:   confirm deletes, font, preferences
 

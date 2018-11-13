@@ -1,6 +1,6 @@
 Title:  Publish Your Notes
 
-Seq:    31
+Seq:    32
 
 Tags:   favorites, PSTextMerge, publish, scripts, template
 

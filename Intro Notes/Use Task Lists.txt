@@ -1,0 +1,38 @@
+Title:  Use Task Lists
+
+Seq:    23
+
+Tags:   lists, tasks
+
+Date Added: 2018-11-06 17:13:30
+
+Body:   
+ 
+You may find at times that you have a series of steps you follow repeatedly for each new work item. 
+
+For example, if you're a blogger, then for each new blog post you might:
+
+* Write the post
+* Publish the post
+* Promote the post on social media
+
+In a case like this, you can create a list of tasks, and then add the entire list to a Collection each time you have a new work item (such as a blog post) that you want to track. 
+
+Here's how to do it. 
+
+1. Create the Collection for which you wish to use one or more Task Lists. 
+
+2. Make sure the Collection has whatever fields you need defined in the Collection's template. 
+
+3. Outside of Notenik, in the macOS Finder, or in Windows Explorer, or using Terminal commands, navigate to your Collection's folder, then create a sub-folder named 'lists'. Then within the lists folder, create one new folder for each Task List you wish to use. Give the folder(s) whatever names will be meaninful to you as the name of a List of tasks to be used repeatedly. 
+
+4. While you're still working in the Finder, or its equivalent, copy the template file from your Collection folder to each of the Task List folders you've just created. This file would typically be named 'template.md' or 'template.txt'. 
+
+5. Now, either using Notenik or your favorite text editor, navigate to your new Task List folder, and create the list of tasks you'd like added for each new work item of that type.  Create these as usual, with only the following differences:
+
+    * Format the Title field anticipating that it will be appended to the name of each new work item. For example, you might want to start the Title field with a hyphen. 
+
+    * Start the Sequence field with 'a.', varying the number after the period to indicate the desired sequence of steps in the list. 
+
+    * Instead of entering a date in the Date field, enter a positive number to indicate the number of days after the first step that this step should be scheduled for. 
+

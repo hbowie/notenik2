@@ -1,6 +1,6 @@
 Title:  Find One or More Notes Containing Specified Text
 
-Seq:    25
+Seq:    26
 
 Tags:   find, replace, search
 

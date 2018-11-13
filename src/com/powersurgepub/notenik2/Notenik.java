@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2017 Herb Bowie
+ * Copyright 2009 - 2018 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.60";
+  public static final String PROGRAM_VERSION = "4.70";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -227,6 +227,12 @@ public class Notenik
   private             MenuItem              cutMenuItem = new MenuItem();
   private             MenuItem              copyMenuItem = new MenuItem();
   private             MenuItem              pasteMenuItem = new MenuItem();
+
+  private             Menu                listsMenu       = new Menu("Lists");
+  private             MenuItem              addListMenuItem = new MenuItem();
+  private             MenuItem              newListMenuItem = new MenuItem();
+  private             Menu                  openListMenu    = new Menu("Open List");
+  private             MenuItem              returnFromListMenuItem = new MenuItem();
   
   private             Menu                toolsMenu       = new Menu("Tools");
   private             MenuItem              toolsOptionsMenuItem;
@@ -296,6 +302,8 @@ public class Notenik
   private             PublishWindow       publishWindow;
   
   private             LinkTweaker         linkTweaker;
+
+  private             ListWrangler        listWrangler;
   
   /*
    Preferences Definitions
@@ -540,6 +548,8 @@ public class Notenik
     replaceWindow = new ReplaceWindow(this);
     
     linkTweaker = new LinkTweaker(this, tweakerPrefs, primaryStage);
+
+    listWrangler = new ListWrangler(this);
     
     displayPane = new DisplayPane(displayPrefs);
     
@@ -602,7 +612,7 @@ public class Notenik
     menuBar = new MenuBar();
     menuBar.setUseSystemMenuBar(true);
     menuBar.getMenus().addAll(fileMenu, collectionMenu, sortMenu, noteMenu,
-        editMenu, toolsMenu, reportsMenu, optionsMenu, windowMenu, helpMenu);
+        editMenu, listsMenu, toolsMenu, reportsMenu, optionsMenu, windowMenu, helpMenu);
     menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
     primaryLayout.getChildren().add(menuBar);
     
@@ -626,7 +636,7 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(openMenuItem);
-    
+
     // Open Essential Menu Item
     openEssentialMenuItem = new MenuItem("Open Essential Collection");
     KeyCombination ekc
@@ -639,17 +649,17 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(openEssentialMenuItem);
-    
+
     // Jump to Last Collection Menu Item
     jumpMenuItem = new MenuItem("Jump to Last Collection");
     FXUtils.assignShortcut(jumpMenuItem, "J");
     jumpMenuItem.setOnAction(e -> jumpToLastCollection());
     fileMenu.getItems().add(jumpMenuItem);
-    
+
     // Open Recent Menu Item
     openRecentMenu = new Menu("Open Recent");
     fileMenu.getItems().add(openRecentMenu);
-    
+
     // Open Help Notes Menu Item
     openHelpNotesMenuItem = new MenuItem("Open Help Notes");
     openHelpNotesMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -659,9 +669,9 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(openHelpNotesMenuItem);
-    
+
     fxUtils.addSeparator(fileMenu);
-    
+
     // New Collection Menu Item
     fileNewMenuItem = new MenuItem("New Collection...");
     fileNewMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -671,9 +681,9 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(fileNewMenuItem);
-    
+
     fxUtils.addSeparator(fileMenu);
-    
+
     // Save Menu Item
     fileSaveMenuItem = new MenuItem("Save");
     KeyCombination skc
@@ -686,7 +696,7 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(fileSaveMenuItem);
-    
+
     // Save All Menu Item
     saveAllMenuItem = new MenuItem("Save All");
     saveAllMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -696,7 +706,7 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(saveAllMenuItem);
-    
+
     // Save As Menu Item
     fileSaveAsMenuItem = new MenuItem("Save As...");
     fileSaveAsMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -706,17 +716,17 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(fileSaveAsMenuItem);
-    
+
     // Backup Menu Item
     fileBackupMenuItem = new MenuItem("Backup...");
-    fileBackupMenuItem.setOnAction(e -> 
+    fileBackupMenuItem.setOnAction(e ->
       {
         if (model.isOpen() && model.size() > 0) {
           promptForBackup();
         } else {
           trouble.report(
-              primaryStage, 
-              "Open a Notes folder before attempting a backup", 
+              primaryStage,
+              "Open a Notes folder before attempting a backup",
               "Backup Error",
               AlertType.ERROR);
         }
@@ -728,7 +738,7 @@ public class Notenik
     fileMoveMenuItem = new MenuItem("Move Collection...");
     fileMoveMenuItem.setOnAction(e -> moveCollection());
     fileMenu.getItems().add(fileMoveMenuItem);
-    
+
     fxUtils.addSeparator(fileMenu);
 
     // Open Master Collection Menu Item
@@ -765,7 +775,7 @@ public class Notenik
 
 
     fxUtils.addSeparator(fileMenu);
-    
+
     // Reload Menu Item
     reloadMenuItem = new MenuItem("Reload");
     reloadMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -775,7 +785,7 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(reloadMenuItem);
-    
+
     // Reload without Untagged Notes
     reloadTaggedMenuItem = new MenuItem("Reload w/o Untagged");
     reloadTaggedMenuItem.setOnAction(new EventHandler<ActionEvent>() {
@@ -785,16 +795,16 @@ public class Notenik
       }
     });
     fileMenu.getItems().add(reloadTaggedMenuItem);
-    
+
     fxUtils.addSeparator(fileMenu);
-    
+
     // Purge Menu Item
     purgeMenuItem = new MenuItem("Purge...");
     purgeMenuItem.setOnAction(e -> purgeMenuItemActionPerformed());
     fileMenu.getItems().add(purgeMenuItem);
-    
+
     fxUtils.addSeparator(fileMenu);
-    
+
     // Publish Window Menu Item
     publishWindowMenuItem = new MenuItem("Publish...");
     KeyCombination pkc
@@ -802,76 +812,76 @@ public class Notenik
     publishWindowMenuItem.setAccelerator(pkc);
     publishWindowMenuItem.setOnAction(e -> displayPublishWindow());
     fileMenu.getItems().add(publishWindowMenuItem);
-    
+
     // Publish Now Menu Item
     publishNowMenuItem = new MenuItem("Publish Now");
     publishNowMenuItem.setOnAction(e -> publishWindow.publishNow());
     fileMenu.getItems().add(publishNowMenuItem);
-    
+
     // Import Menu Items
     importMenu = new Menu("Import");
     fileMenu.getItems().add(importMenu);
-    
+
     importMacAppInfo = new MenuItem("Mac App Info...");
     importMacAppInfo.setOnAction(e -> importMacAppInfo());
     importMenu.getItems().add(importMacAppInfo);
-    
+
     importNotenikMenuItem = new MenuItem("Notenik...");
     importNotenikMenuItem.setOnAction(e -> importFile());
     importMenu.getItems().add(importNotenikMenuItem);
-    
+
     importTabDelimitedMenuItem = new MenuItem("Tab-Delimited...");
     importTabDelimitedMenuItem.setOnAction(e -> importTabDelimited());
     importMenu.getItems().add(importTabDelimitedMenuItem);
-    
+
     importXMLMenuItem = new MenuItem("XML...");
     importXMLMenuItem.setOnAction(e -> importXMLFile());
     importMenu.getItems().add(importXMLMenuItem);
-    
+
     // Export Menu Items
     exportMenu = new Menu("Export");
     fileMenu.getItems().add(exportMenu);
-    
+
     exportNotenikMenuItem = new MenuItem("Notenik...");
     exportNotenikMenuItem.setOnAction
         (e -> generalExport(NoteExport.NOTENIK_EXPORT));
     exportMenu.getItems().add(exportNotenikMenuItem);
-    
+
     exportOPML = new MenuItem("OPML...");
     exportOPML.setOnAction(e -> generalExport(NoteExport.OPML_EXPORT));
     exportMenu.getItems().add(exportOPML);
-    
+
     exportTabDelimitedMenuItem = new MenuItem("Tab-Delimited...");
     exportTabDelimitedMenuItem.setOnAction
         (e -> generalExport(NoteExport.TABDELIM_EXPORT));
     exportMenu.getItems().add(exportTabDelimitedMenuItem);
-    
+
     exportTabDelimitedMSMenuItem = new MenuItem("Tab-Delimited for MS Links");
     exportTabDelimitedMSMenuItem.setOnAction
         (e -> generalExport(NoteExport.TABDELIM_EXPORT_MS_LINKS));
     exportMenu.getItems().add(exportTabDelimitedMSMenuItem);
-    
+
     exportXMLMenuItem = new MenuItem("XML...");
     exportXMLMenuItem.setOnAction
         (e -> generalExport(NoteExport.XML_EXPORT));
     exportMenu.getItems().add(exportXMLMenuItem);
-    
+
     //
     // Let's build out the Collection Menu
     //
-    
+
     // Collection Prefs Menu Item
     collectionPrefsMenuItem = new MenuItem("Collection Preferences");
     collectionPrefsMenuItem.setOnAction(e -> displayAuxiliaryWindow(collectionPrefs));
     collectionMenu.getItems().add(collectionPrefsMenuItem);
-    
+
     // Collection Template Menu Item
     collectionTemplateMenuItem = new MenuItem("Collection Template");
     collectionTemplateMenuItem.setOnAction(e -> editTemplate());
     collectionMenu.getItems().add(collectionTemplateMenuItem);
-    
+
     fxUtils.addSeparator(collectionMenu);
-    
+
     // Find Menu Item
     findMenuItem = new MenuItem("Find");
     KeyCombination fkc
@@ -887,7 +897,7 @@ public class Notenik
     findAgainMenuItem.setOnAction(e -> findNote());
     findAgainMenuItem.setDisable(true);
     collectionMenu.getItems().add(findAgainMenuItem);
-    
+
     // Replace Menu Item
     replaceMenuItem = new MenuItem("Replace...");
     KeyCombination rkc
@@ -895,26 +905,26 @@ public class Notenik
     replaceMenuItem.setAccelerator(rkc);
     replaceMenuItem.setOnAction(e -> startReplace());
     collectionMenu.getItems().add(replaceMenuItem);
-    
+
     fxUtils.addSeparator(collectionMenu);
-    
+
     // Add/Replace Tag Menu Item
     addReplaceTagsMenuItem = new MenuItem("Add/Replace Tag...");
     addReplaceTagsMenuItem.setOnAction(e -> checkTags());
     collectionMenu.getItems().add(addReplaceTagsMenuItem);
-    
+
     // Flatten Tag Levels Menu Item
     flattenTagsMenuItem = new MenuItem("Flatten Tag Levels");
     flattenTagsMenuItem.setOnAction(e -> flattenTags());
     collectionMenu.getItems().add(flattenTagsMenuItem);
-    
+
     // Lower Case Tags Menu Item
     lowerCaseTagsMenuItem = new MenuItem("Lower Case Tags");
     lowerCaseTagsMenuItem.setOnAction(e -> lowerCaseTags());
     collectionMenu.getItems().add(lowerCaseTagsMenuItem);
-    
+
     fxUtils.addSeparator(collectionMenu);
-    
+
     // Validate Links Menu Item
     validateURLsMenuItem = new MenuItem("Validate Links...");
     validateURLsMenuItem.setOnAction(e -> validateURLs());
@@ -929,12 +939,12 @@ public class Notenik
     catchUpDailyMenuItem.setAccelerator(ukc);
     catchUpDailyMenuItem.setOnAction(e -> catchUpDailyTasks());
     collectionMenu.getItems().add(catchUpDailyMenuItem);
-    
-    
+
+
     //
     // Let's build out the Note Menu
     //
-    
+
     // New Note Menu Item
     newNoteMenuItem = new MenuItem("New Note");
     KeyCombination nkc
@@ -942,20 +952,20 @@ public class Notenik
     newNoteMenuItem.setAccelerator(nkc);
     newNoteMenuItem.setOnAction(e -> newNote());
     noteMenu.getItems().add(newNoteMenuItem);
-    
+
     // Delete Note Menu Item
     deleteNoteMenuItem = new MenuItem("Delete Note");
     deleteNoteMenuItem.setOnAction(e -> removeNote());
     FXUtils.assignShortcut(deleteNoteMenuItem, "D");
     noteMenu.getItems().add(deleteNoteMenuItem);
-    
+
     undoEditsMenuItem = new MenuItem("Undo Edits");
     FXUtils.assignShortcut(undoEditsMenuItem, "Z");
     undoEditsMenuItem.setOnAction(e -> undoEdits());
     noteMenu.getItems().add(undoEditsMenuItem);
-    
+
     fxUtils.addSeparator(noteMenu);
-    
+
     // Next Note Menu Item
     nextMenuItem = new MenuItem("Go to Next Note");
     KeyCombination nextkc
@@ -963,7 +973,7 @@ public class Notenik
     nextMenuItem.setAccelerator(nextkc);
     nextMenuItem.setOnAction (e -> nextNote());
     noteMenu.getItems().add(nextMenuItem);
-    
+
     // Prior Note Menu Item
     priorMenuItem = new MenuItem("Go to Previous Note");
     KeyCombination priorkc
@@ -979,16 +989,16 @@ public class Notenik
     scrollToSelectedMenuItem.setAccelerator(scrollkc);
     scrollToSelectedMenuItem.setOnAction(e -> scrollToSelectedNote());
     noteMenu.getItems().add(scrollToSelectedMenuItem);
-    
+
     fxUtils.addSeparator(noteMenu);
-    
+
     openNoteMenuItem = new MenuItem("Text Edit Note");
-    KeyCombination tkc 
+    KeyCombination tkc
         = new KeyCharacterCombination("T", KeyCombination.SHORTCUT_DOWN);
     openNoteMenuItem.setAccelerator(tkc);
     openNoteMenuItem.setOnAction(e -> openNote());
     noteMenu.getItems().add(openNoteMenuItem);
-    
+
     // Close Note Menu Item
     closeNoteMenuItem = new MenuItem("Close Note");
     KeyCombination kkc
@@ -996,22 +1006,22 @@ public class Notenik
     closeNoteMenuItem.setAccelerator(kkc);
     closeNoteMenuItem.setOnAction(e -> closeNoteMenuItemActionPerformed());
     noteMenu.getItems().add(closeNoteMenuItem);
-    
+
     // Get File Info Menu Item
     getFileInfoMenuItem = new MenuItem("Get File Info...");
     getFileInfoMenuItem.setOnAction(e -> displayFileInfo());
     noteMenu.getItems().add(getFileInfoMenuItem);
-    
+
     // Increment Seq Menu Item
     incrementSeqMenuItem = new MenuItem("Increment Seq");
     incrementSeqMenuItem.setOnAction(e -> incrementSeq());
     noteMenu.getItems().add(incrementSeqMenuItem);
-    
+
     //Increment Date Menu Item
     incrementDateMenuItem = new MenuItem("Increment Date");
     incrementDateMenuItem.setOnAction(e -> incrementDate());
     noteMenu.getItems().add(incrementDateMenuItem);
-    
+
     fxUtils.addSeparator(noteMenu);
 
     // Add Attachment Menu Item
@@ -1025,64 +1035,81 @@ public class Notenik
     noteMenu.getItems().add(deleteAttachmentMenuItem);
 
     fxUtils.addSeparator(noteMenu);
-    
+
     // Copy Note Menu Item
     copyNoteMenuItem = new MenuItem("Copy Note");
     copyNoteMenuItem.setOnAction(e -> copyNote());
     noteMenu.getItems().add(copyNoteMenuItem);
-    
+
     // Paste Note Menu Item
     pasteNoteMenuItem = new MenuItem("Paste Note");
     pasteNoteMenuItem.setOnAction(e -> pasteNote());
     noteMenu.getItems().add(pasteNoteMenuItem);
-    
+
     // Copy Code Menu Item
     copyCodeMenuItem = new MenuItem("Copy Code");
     FXUtils.assignShortcut(copyCodeMenuItem, "Y");
     copyCodeMenuItem.setOnAction(e -> copyCode());
     noteMenu.getItems().add(copyCodeMenuItem);
-    
+
     // Gen HTML Menu
     htmlMenu = new Menu("Gen HTML");
     noteMenu.getItems().add(htmlMenu);
-    
+
     // HTML to Clipboard Menu Item
     htmlToClipboardMenuItem = new MenuItem("Copy to Clipboard");
     htmlToClipboardMenuItem.setOnAction(e -> genHTMLtoClipboard());
     htmlMenu.getItems().add(htmlToClipboardMenuItem);
-    
+
     // HTML to File Menu Item
     htmlToFileMenuItem = new MenuItem("Save to File");
     htmlToFileMenuItem.setOnAction(e -> genHTMLtoFile());
     htmlMenu.getItems().add(htmlToFileMenuItem);
-    
+
     incKC = new KeyCodeCombination(KeyCode.I, KeyCombination.SHORTCUT_DOWN);
-    
+
     //
     // Build the Edit Menu
     //
-    
+
     // Cut Menu Item
     cutMenuItem = new MenuItem("Cut");
     cutMenuItem.setOnAction(e -> cut());
     editMenu.getItems().add(cutMenuItem);
-    
+
     // Copy Menu Item
     copyMenuItem = new MenuItem("Copy");
     copyMenuItem.setOnAction(e -> copy());
     editMenu.getItems().add(copyMenuItem);
-    
+
     // Paste Menu Item
     pasteMenuItem = new MenuItem("Paste");
     pasteMenuItem.setOnAction(e -> paste());
     editMenu.getItems().add(pasteMenuItem);
 
     editMenu.setOnShowing(e -> setCutCopyPaste());
-    
-    // 
+
+    //
+    // Build the Lists Menu
+    //
+    addListMenuItem = new MenuItem("Add List...");
+    addListMenuItem.setOnAction(e -> addList());
+    listsMenu.getItems().add(addListMenuItem);
+
+    newListMenuItem = new MenuItem("New List...");
+    newListMenuItem.setOnAction(e -> newList());
+    listsMenu.getItems().add(newListMenuItem);
+
+    listsMenu.getItems().add(openListMenu);
+
+    returnFromListMenuItem = new MenuItem("Return from List");
+    returnFromListMenuItem.setOnAction(e -> returnFromList());
+    listsMenu.getItems().add(returnFromListMenuItem);
+
+    //
     // Build the Tools Menu
     //
-    
+
     // Build the Options Menu Item
     toolsOptionsMenuItem = new MenuItem("Options...");
     KeyCombination commakc
@@ -1090,7 +1117,7 @@ public class Notenik
     toolsOptionsMenuItem.setAccelerator(commakc);
     toolsOptionsMenuItem.setOnAction(e -> handlePreferences());
     toolsMenu.getItems().add(toolsOptionsMenuItem);
-    
+
     // Build the Link Tweaker Menu Item
     toolsLinkTweakerMenuItem = new MenuItem("Link Tweaker...");
     KeyCombination lkc
@@ -3697,6 +3724,25 @@ public class Notenik
   private void newCollection() {
     
     reports.setDataFolder(model.getFolder());
+    listWrangler.setNotesFolder(model.getFolder(), openListMenu);
+    File parentFolder = model.getFolder().getParentFile();
+    File listsFolder = new File(model.getFolder(), ListWrangler.LISTS_FOLDER);
+    if (parentFolder.getName().equalsIgnoreCase(ListWrangler.LISTS_FOLDER)) {
+      addListMenuItem.setDisable(true);
+      newListMenuItem.setDisable(true);
+      openListMenu.setDisable(true);
+      returnFromListMenuItem.setDisable(false);
+    } else if (listsFolder.exists() && listsFolder.isDirectory() && listsFolder.canRead()) {
+      addListMenuItem.setDisable(false);
+      newListMenuItem.setDisable(false);
+      openListMenu.setDisable(false);
+      returnFromListMenuItem.setDisable(true);
+    } else {
+      addListMenuItem.setDisable(true);
+      newListMenuItem.setDisable(false);
+      openListMenu.setDisable(true);
+      returnFromListMenuItem.setDisable(true);
+    }
     publishWindow.openSource(model.getFolder());
     displayedID = -1;
     if (model.editingMasterCollection()) {
@@ -4230,7 +4276,7 @@ public class Notenik
   /**
    Let's get ready to import a bunch of notes. 
   */
-  private void preImport() {
+  public void preImport() {
     closeFile();
     FileSpec fileSpec = model.getFileSpec();
     model.openStart(fileSpec, false);
@@ -4240,7 +4286,7 @@ public class Notenik
   /**
    Let's rebuild the UI now that the import has completed. 
   */
-  private void postImport() {
+  public void postImport() {
     newCollection();
   }
   
@@ -4824,6 +4870,7 @@ public class Notenik
   private void catchUpDailyTasks() {
 
     boolean modOK = false;
+    int mods = 0;
     if (opInProgress) {
       System.out.println("Notenik.catchUpDailyTasks operation in progress = "
           + String.valueOf(opInProgress));
@@ -4840,15 +4887,15 @@ public class Notenik
       // Build a list of URL validator tasks
       Note workNote;
       String todayYMD = StringDate.getTodayYMD();
-      int mods = 0;
       for (
           int workIndex = model.firstNote();
           workIndex >= 0 && workIndex < model.size();
           workIndex = model.nextNote(workIndex)) {
 
         workNote = model.get(workIndex);
+        boolean done = (workNote.hasStatus() && workNote.getStatus().isDone());
 
-        if (workNote.hasDate() && workNote.hasRecurs()) {
+        if (workNote.hasDate() && workNote.hasRecurs() && (! done)) {
           RecursValue workRecurs = workNote.getRecurs();
           if (workRecurs.getUnit() == RecursValue.DAYS && workRecurs.getInterval() == 1) {
             StringDate workDate = new StringDate();
@@ -5127,6 +5174,88 @@ public class Notenik
     if (ok) {
       logNormal("HTML generated for body of Note " + note.getTitle());
     }
+  }
+
+  /**
+   * Try to help the user add a list of notes to the current collection.
+   */
+  private void addList() {
+    if (model.isOpen()) {
+      boolean ok = false;
+      boolean modOK = false;
+      if (opInProgress) {
+        System.out.println("Notenik.addList operation in progress = "
+            + String.valueOf(opInProgress));
+      } else {
+        modOK = modIfChanged();
+      }
+
+      if (modOK) {
+        listWrangler.addList(primaryStage, model);
+      }
+    }
+  }
+
+  /**
+   * Help the user create a new list for this collection.
+   */
+  private void newList() {
+    if (model.isOpen()) {
+      boolean ok = false;
+      boolean modOK = false;
+      if (opInProgress) {
+        System.out.println("Notenik.newList operation in progress = "
+            + String.valueOf(opInProgress));
+      } else {
+        modOK = modIfChanged();
+      }
+
+      if (modOK) {
+        listWrangler.newList(primaryStage, this, model);
+      }
+    }
+  }
+
+  /**
+   * Open a list within a Collection.
+   *
+   * @param listName
+   */
+  public void openList(String listName) {
+    boolean modOK = true;
+    if (model.isOpen()) {
+      if (model.hasSelection()) {
+        modOK = modIfChanged();
+      }
+      if (modOK) {
+        File listsFolder = new File(model.getFolder(), ListWrangler.LISTS_FOLDER);
+        File fileToOpen = new File(listsFolder, listName);
+        if (NoteCollectionModel.goodFolder(fileToOpen)) {
+          closeFile();
+          openFile(fileToOpen);
+        } // end if good folder
+      } // end if mod ok
+    } // end if model is open
+  } // end method openList
+
+  private void returnFromList() {
+    boolean modOK = true;
+    if (model.isOpen()) {
+      if (model.hasSelection()) {
+        modOK = modIfChanged();
+      }
+      if (modOK) {
+        File currentFolder = model.getFolder();
+        File parentFolder = currentFolder.getParentFile();
+        if (parentFolder.getName().equalsIgnoreCase(ListWrangler.LISTS_FOLDER)) {
+          File returnFolder = parentFolder.getParentFile();
+          if (NoteCollectionModel.goodFolder(returnFolder)) {
+            closeFile();
+            openFile(returnFolder);
+          } // end if good folder
+        } // End if we're really within a lists folder
+      } // end if mod ok
+    } // end if model is open
   }
   
   public void logNormal (String msg) {

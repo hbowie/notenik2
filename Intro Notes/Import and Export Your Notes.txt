@@ -1,6 +1,6 @@
 Title:  Import and Export Your Notes
 
-Seq:    34
+Seq:    35
 
 Tags:   export, import, mac apps, opml, tab-delimited, tags, xml
 
