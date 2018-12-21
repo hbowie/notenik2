@@ -20,7 +20,7 @@ Following are the keyboard shortcuts available within the app. Tap the appropria
 * I - Increment Date or Seq
 * J - Jump to Last Collection
 * K - Close Note
-* L - Link Tweaker
+* L - Leap using Seq as Shortcut
 * M - Open Master Collection
 * N - New Note
 * O - Open

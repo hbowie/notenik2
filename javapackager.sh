@@ -18,7 +18,7 @@ cp -p -R "$docs/resources/$name/reports" $appf
 
 # mkdir -p dist/appfolder
 # jdk=$(/usr/libexec/java_home)
-jdk="/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home"
+jdk="/Library/Java/JavaVirtualMachines/jdk1.8.0_192.jdk/Contents/Home"
 $jdk/bin/javapackager -version
 $jdk/bin/javapackager -deploy \
 	-native image \

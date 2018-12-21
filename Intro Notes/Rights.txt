@@ -1,6 +1,6 @@
 Title:  Rights
 
-Seq:    40
+Seq:    41
 
 Tags:   author, copyright, license, open source, rights
 

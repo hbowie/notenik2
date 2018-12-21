@@ -39,4 +39,6 @@ If you'd like Notenik to forget about a Collection, then you can delete it from 
 
 If you lose track of one or more Collections, then you can Open the Master Collection, and then use the Search for Collections item on the File Menu to search within a specified folder for any additional Collections to be added to the Master Collections list. 
 
+You may use the Seq field in the Master Collection to specify a Shortcut that can be used to open that Collection. You may invoke a Shortcut by selecting the Leap using Seq as Shortcut item beneath the File Menu. You will then be presented with a screen allowing you to type a shortcut, or select one by clicking on its corresponding button. 
+
 

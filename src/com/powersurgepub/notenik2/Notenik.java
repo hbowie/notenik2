@@ -53,6 +53,7 @@ package com.powersurgepub.notenik2;
   import javafx.scene.control.Alert.*;
   import javafx.scene.control.Button;
   import javafx.scene.control.ButtonBar.*;
+  import javafx.scene.control.Label;
   import javafx.scene.control.Menu;
   import javafx.scene.control.MenuBar;
   import javafx.scene.control.MenuItem;
@@ -85,7 +86,7 @@ public class Notenik
       WebLauncher {
   
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "4.70";
+  public static final String PROGRAM_VERSION = "4.80";
   
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -158,6 +159,7 @@ public class Notenik
   private             MenuItem              openMenuItem;
   private             Menu                  openRecentMenu;
   private             MenuItem              jumpMenuItem;
+  private             MenuItem              leapMenuItem;
   private             MenuItem              openEssentialMenuItem;
   private             MenuItem              openHelpNotesMenuItem;
   private             MenuItem              fileNewMenuItem;
@@ -342,6 +344,17 @@ public class Notenik
   
   // File Info Window
   private             FileInfoWindow      fileInfoWindow;
+
+  // Leap Via Seq Window
+  public static final String LEAP_WINDOW_TITLE = "Leap Via Shortcut";
+
+  private     Stage               leapStage;
+  private     Scene               leapScene;
+  private     GridPane            leapPane;
+  private     Label               shortcutLabel;
+  private     TextField           shortcutText;
+
+  private     ArrayList<FileSpec> shortcuts = new ArrayList<FileSpec>();
 
   // Variables used for logging
 
@@ -655,6 +668,12 @@ public class Notenik
     FXUtils.assignShortcut(jumpMenuItem, "J");
     jumpMenuItem.setOnAction(e -> jumpToLastCollection());
     fileMenu.getItems().add(jumpMenuItem);
+
+    // Leap to Shortcut Menu Item
+    leapMenuItem = new MenuItem("Leap using Seq as Shortcut");
+    FXUtils.assignShortcut(leapMenuItem, "L");
+    leapMenuItem.setOnAction(e -> leapViaSeq());
+    fileMenu.getItems().add(leapMenuItem);
 
     // Open Recent Menu Item
     openRecentMenu = new Menu("Open Recent");
@@ -1120,9 +1139,6 @@ public class Notenik
 
     // Build the Link Tweaker Menu Item
     toolsLinkTweakerMenuItem = new MenuItem("Link Tweaker...");
-    KeyCombination lkc
-        = new KeyCharacterCombination("L", KeyCombination.SHORTCUT_DOWN);
-    toolsLinkTweakerMenuItem.setAccelerator(lkc);
     toolsLinkTweakerMenuItem.setOnAction(e -> invokeLinkTweaker());
     toolsMenu.getItems().add(toolsLinkTweakerMenuItem);
     
@@ -1764,6 +1780,109 @@ public class Notenik
         }
       } // end if we have an essential file path
     } // end if mod ok
+  }
+
+  /**
+   * Pop up a window allowing the user to quickly "leap" to another collection via a shortcut.
+   */
+  private void leapViaSeq() {
+
+    boolean modOK = false;
+    if (opInProgress) {
+      System.out.println("Notenik.leapViaSeq operation in progress = "
+          + String.valueOf(opInProgress));
+    } else {
+      modOK = modIfChanged();
+    }
+    if (modOK) {
+
+      int rowCount = 0;
+
+      leapStage = new Stage(StageStyle.UTILITY);
+      leapStage.setTitle(LEAP_WINDOW_TITLE);
+      leapStage.initModality(Modality.APPLICATION_MODAL);
+      leapStage.initOwner(primaryStage);
+      leapPane = new GridPane();
+      fxUtils.applyStyle(leapPane);
+
+      shortcutLabel = new Label("Shortcut:");
+      leapPane.add(shortcutLabel, 0, rowCount, 1, 1);
+      shortcutText = new TextField();
+      shortcutText.setOnKeyTyped(e -> leapNow(shortcutText.getText() + e.getCharacter()));
+      leapPane.add(shortcutText, 1, rowCount, 1, 1);
+      shortcutText.setMaxWidth(Double.MAX_VALUE);
+      GridPane.setHgrow(shortcutText, Priority.ALWAYS);
+
+      rowCount++;
+
+      // Now let's build a list of shortcuts (using the seq field as the shortcut)
+      // and keep the list sorted by shortcut.
+      shortcuts = new ArrayList<FileSpec>();
+      for (int i = 0; i < model.getMaster().getRecentFiles().size(); i++) {
+        FileSpec shortcut = model.getMaster().getRecentFiles().get(i);
+        if (shortcut.hasShortcut()) {
+          int j = 0;
+          int compareResult = 1;
+          while (j < shortcuts.size() && compareResult > 0) {
+            FileSpec nextSpec = shortcuts.get(j);
+            compareResult = shortcut.getShortcut().compareTo(nextSpec.getShortcut());
+            if (compareResult > 0) {
+              j++;
+            }
+          } // end while looking for an insertion point for new shortcut
+          if (j >= shortcuts.size()) {
+            shortcuts.add(shortcut);
+          } else {
+            shortcuts.add(j, shortcut);
+          } // end if we're not at end of shortcuts array
+        } // end if we have a new shortcut to add to the list
+      } // end of recent files array
+
+      // Now let's build a button for each shortcut
+      for (int k = 0; k < shortcuts.size(); k++) {
+        FileSpec shortcut = shortcuts.get(k);
+        Button shortcutButton = new Button(shortcut.getShortcut());
+        shortcutButton.setOnAction(e -> leapNow(shortcutButton.getText()));
+        leapPane.add(shortcutButton, 0, rowCount, 1, 1);
+        shortcutButton.setMaxWidth(Double.MAX_VALUE);
+        Label  shortcutLabel  = new Label(shortcut.getCollectionTitle());
+        leapPane.add(shortcutLabel, 1, rowCount, 1, 1);
+        shortcutLabel.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHgrow(shortcutLabel, Priority.ALWAYS);
+        rowCount++;
+      }
+
+      leapScene = new Scene(leapPane);
+      leapStage.setScene(leapScene);
+      leapStage.setMinWidth(720);
+      leapStage.setMinHeight(240);
+      leapStage.show();
+    } // end if mod ok
+  }
+
+  public boolean leapNow(String selectedShortcut) {
+
+    boolean found = false;
+    int i = 0;
+    FileSpec jumpSpec = null;
+    while (i < shortcuts.size() && (! found)) {
+      jumpSpec = shortcuts.get(i);
+      if (jumpSpec.getShortcut().equalsIgnoreCase(selectedShortcut)) {
+        found = true;
+      } else {
+        i++;
+      }
+    }
+
+    if (found
+        && jumpSpec != null
+        && NoteCollectionModel.goodFolder(jumpSpec.getFolder())) {
+      leapStage.close();
+      closeFile();
+      openFile (jumpSpec, false);
+    } // end if we have a good collection to jump to
+
+    return found;
   }
   
   /**      

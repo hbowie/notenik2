@@ -71,7 +71,7 @@ public class FileInfoWindow
     buildUI();
   }
   
-    /**
+  /**
    Build the user interface
    */
 	private void buildUI() {
