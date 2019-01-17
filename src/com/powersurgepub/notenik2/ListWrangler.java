@@ -248,6 +248,13 @@ public class ListWrangler
 
             String titlePrefix = titleField.getText();
             if (titlePrefix != null && titlePrefix.length() > 0) {
+              if (listNote.getTitle().startsWith("- ") || listNote.getTitle().startsWith(" - ")) {
+                if (titlePrefix.endsWith(" -")) {
+                  titlePrefix = titlePrefix.substring(0, titlePrefix.length() - 2);
+                } else if (titlePrefix.endsWith(" - ")) {
+                  titlePrefix = titlePrefix.substring(0, titlePrefix.length() - 3);
+                }
+              }
               listNote.setTitle(titlePrefix + " " + listNote.getTitle());
             }
 
@@ -255,10 +262,16 @@ public class ListWrangler
             if (seqPrefix != null && seqPrefix.length() > 0 && listNote.hasSeq()) {
               String oldSeq = listNote.getSeq();
               String newSeq;
+              String listSeq;
               if (oldSeq.length() > 2 && oldSeq.startsWith("a.")) {
-                newSeq = seqPrefix + oldSeq.substring(1);
+                listSeq = oldSeq.substring(1);
               } else {
-                newSeq = seqPrefix + oldSeq;
+                listSeq = oldSeq;
+              }
+              if (seqPrefix.endsWith(".") && listSeq.startsWith(".")) {
+                newSeq = seqPrefix + listSeq.substring(1);
+              } else {
+                newSeq = seqPrefix + listSeq;
               }
               listNote.setSeq(newSeq);
             }
