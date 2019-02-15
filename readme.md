@@ -1,7 +1,7 @@
 Introduction
 ------------
 
-Notenik 2 is a rewrite of Notenik designed to use JavaFX instead of Swing. The rewrite is currently in work, so the new app is not yet usable. 
+Notenik 2 is a rewrite of Notenik designed to use JavaFX instead of Swing. 
 
 Notenik 2 is a desktop software program to help a single user maintain multiple collections of notes.
 
